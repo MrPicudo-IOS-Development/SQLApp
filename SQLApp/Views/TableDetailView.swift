@@ -1,12 +1,33 @@
 import SwiftUI
 
+/// Displays the schema and data of a specific database table.
+///
+/// Provides a segmented picker to switch between two views:
+/// - **Structure**: A list of column definitions showing name, type,
+///   primary key status, `NOT NULL` constraint, and default value.
+/// - **Data**: A scrollable grid of the table's row data using ``ResultsTableView``.
+///
+/// Table details are loaded lazily when the view first appears via `.task`.
+/// The view receives its data through ``TableBrowserViewModel``, which
+/// delegates to the database service.
 struct TableDetailView: View {
+
+    /// The name of the table whose details are displayed.
     let tableName: String
+
+    /// The ViewModel used to fetch table schema and data from the database.
     let viewModel: TableBrowserViewModel
 
+    /// The table's column definitions, loaded asynchronously on appearance.
     @State private var tableInfo: TableInfo?
+
+    /// The table's row data, loaded asynchronously on appearance.
     @State private var tableData: QueryResult?
+
+    /// An error message if loading the table details failed.
     @State private var errorMessage: String?
+
+    /// The currently selected detail tab (structure or data).
     @State private var selectedTab: DetailTab = .structure
 
     var body: some View {
@@ -37,6 +58,11 @@ struct TableDetailView: View {
 
     // MARK: - Structure View
 
+    /// Displays the table's column definitions as a list.
+    ///
+    /// Each row shows the column name and type, along with visual badges
+    /// for primary key (orange key icon), `NOT NULL` constraint (red text),
+    /// and default value (blue text).
     private var structureView: some View {
         Group {
             if let error = errorMessage {
@@ -84,6 +110,7 @@ struct TableDetailView: View {
 
     // MARK: - Data View
 
+    /// Displays the table's row data using the reusable ``ResultsTableView``.
     private var dataView: some View {
         Group {
             if let data = tableData {
@@ -96,6 +123,10 @@ struct TableDetailView: View {
 
     // MARK: - Data Loading
 
+    /// Loads both the table schema and row data from the database.
+    ///
+    /// Called once when the view first appears. On failure, sets ``errorMessage``
+    /// to display an error state in the structure view.
     private func loadDetails() async {
         do {
             tableInfo = try await viewModel.getTableInfo(tableName)
@@ -105,5 +136,3 @@ struct TableDetailView: View {
         }
     }
 }
-
-
