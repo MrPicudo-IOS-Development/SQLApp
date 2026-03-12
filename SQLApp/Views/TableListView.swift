@@ -18,6 +18,9 @@ struct TableListView: View {
     /// The ViewModel that manages the table list state and provides data access.
     @Bindable var viewModel: TableBrowserViewModel
 
+    /// The settings ViewModel providing the accent color for table icons.
+    let settingsViewModel: SettingsViewModel
+
     var body: some View {
         NavigationStack {
             Group {
@@ -38,14 +41,19 @@ struct TableListView: View {
                 } else {
                     List(viewModel.tables, id: \.self) { tableName in
                         NavigationLink(value: tableName) {
-                            Label(tableName, systemImage: "tablecells")
+                            Label {
+                                Text(tableName)
+                            } icon: {
+                                Image(systemName: "tablecells")
+                                    .foregroundStyle(settingsViewModel.keywordColor)
+                            }
                         }
                     }
                 }
             }
             .navigationTitle("Tables")
             .navigationDestination(for: String.self) { tableName in
-                TableDetailView(tableName: tableName, viewModel: viewModel)
+                TableDetailView(tableName: tableName, viewModel: viewModel, settingsViewModel: settingsViewModel)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

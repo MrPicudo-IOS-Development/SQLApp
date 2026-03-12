@@ -49,7 +49,7 @@ struct ContentView: View {
             }
 
             Tab("Tables", systemImage: "tablecells") {
-                TableListView(viewModel: tableBrowserVM)
+                TableListView(viewModel: tableBrowserVM, settingsViewModel: settingsVM)
             }
 
             Tab("Settings", systemImage: "gearshape") {

@@ -18,6 +18,9 @@ struct TableDetailView: View {
     /// The ViewModel used to fetch table schema and data from the database.
     let viewModel: TableBrowserViewModel
 
+    /// The settings ViewModel providing the accent color for column headers.
+    let settingsViewModel: SettingsViewModel
+
     /// The table's column definitions, loaded asynchronously on appearance.
     @State private var tableInfo: TableInfo?
 
@@ -38,6 +41,7 @@ struct TableDetailView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .controlSize(.large)
             .padding()
 
             Group {
@@ -114,7 +118,7 @@ struct TableDetailView: View {
     private var dataView: some View {
         Group {
             if let data = tableData {
-                ResultsTableView(result: data)
+                ResultsTableView(result: data, headerColor: settingsViewModel.keywordColor)
             } else {
                 ProgressView()
             }

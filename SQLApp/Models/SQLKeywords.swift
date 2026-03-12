@@ -19,10 +19,10 @@ enum SQLKeywords {
     /// logic to transform recognized keywords to their canonical form.
     static let all: Set<String> = [
         "ABORT", "ACTION", "ADD", "AFTER", "ALL", "ALTER", "ALWAYS",
-        "ANALYZE", "AND", "AS", "ASC", "ATTACH", "AUTOINCREMENT",
+        "ANALYZE", "AND", "AS", "ASC", "ATTACH", "AUTOINCREMENT", "AVG",
         "BEFORE", "BEGIN", "BETWEEN", "BY",
         "CASCADE", "CASE", "CAST", "CHECK", "COLLATE", "COLUMN",
-        "COMMIT", "CONFLICT", "CONSTRAINT", "CREATE", "CROSS",
+        "COMMIT", "CONFLICT", "CONSTRAINT", "COUNT", "CREATE", "CROSS",
         "CURRENT", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP",
         "DATABASE", "DEFAULT", "DEFERRABLE", "DEFERRED", "DELETE",
         "DESC", "DETACH", "DISTINCT", "DO", "DROP",

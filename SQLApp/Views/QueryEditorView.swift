@@ -40,9 +40,7 @@ struct QueryEditorView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 sqlInputSection
-                Divider()
                 controlBar
-                Divider()
                 resultsSection
             }
             .contentShape(Rectangle())
@@ -116,31 +114,35 @@ struct QueryEditorView: View {
 
     // MARK: - Control Bar
 
-    /// The toolbar containing the "Run" button, execution progress, and status message.
+    /// The control area containing a full-width "Run" button and execution status.
     ///
-    /// The "Run" button is disabled when the SQL text is empty or a query is already
-    /// executing. Tapping "Run" dismisses the keyboard before starting execution.
-    /// The execution message is color-coded: green for success, red for errors.
+    /// The "Run" button spans the available width following HIG emphasis
+    /// guidelines for primary actions. Disabled when the SQL text is empty
+    /// or a query is already executing. Tapping "Run" dismisses the keyboard
+    /// before starting execution. A color-coded status message appears
+    /// beneath the button after execution completes.
     private var controlBar: some View {
-        HStack {
+        VStack(spacing: 6) {
             Button {
                 dismissKeyboard()
                 Task { await viewModel.executeSQL() }
             } label: {
-                Label("Run", systemImage: "play.fill")
+                Group {
+                    if viewModel.isExecuting {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Label("Run", systemImage: "play.fill")
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .disabled(
                 viewModel.sqlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || viewModel.isExecuting
             )
-
-            if viewModel.isExecuting {
-                ProgressView()
-                    .padding(.leading, 8)
-            }
-
-            Spacer()
 
             if let message = viewModel.executionMessage {
                 Text(message)
@@ -149,7 +151,7 @@ struct QueryEditorView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
     }
 
     // MARK: - Results
@@ -175,7 +177,7 @@ struct QueryEditorView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else if let result = viewModel.queryResult {
-                ResultsTableView(result: result)
+                ResultsTableView(result: result, headerColor: settingsViewModel.keywordColor)
             } else if viewModel.executionMessage != nil {
                 ContentUnavailableView(
                     "Done",
@@ -183,11 +185,13 @@ struct QueryEditorView: View {
                     description: Text(viewModel.executionMessage ?? "")
                 )
             } else {
-                ContentUnavailableView(
-                    "No Results",
-                    systemImage: "text.page",
-                    description: Text("Write a SQL query and tap Run")
-                )
+                ContentUnavailableView {
+                    Label("No Results", systemImage: "text.page")
+                        .foregroundStyle(settingsViewModel.keywordColor)
+                } description: {
+                    Text("Write a SQL query and tap Run")
+                        .padding(.top)
+                }
             }
         }
         .frame(maxHeight: .infinity)
