@@ -11,10 +11,12 @@ final class QueryEditorViewModel {
     var isExecuting: Bool = false
     var executionMessage: String?
     var queryHistory: [QueryHistoryItem] = []
+    var executionStatus: ExecutionStatus = .idle
 
     // MARK: - Dependencies
 
     private let databaseService: any DatabaseServiceProtocol
+    private var feedbackCounter = 0
 
     // MARK: - Initialization
 
@@ -47,9 +49,13 @@ final class QueryEditorViewModel {
                 executionMessage = "\(affected) row(s) affected"
                 addToHistory(sql: trimmed, success: true, rows: affected)
             }
+            feedbackCounter += 1
+            executionStatus = .success(feedbackCounter)
         } catch {
             errorMessage = error.localizedDescription
             addToHistory(sql: trimmed, success: false, errorMsg: error.localizedDescription)
+            feedbackCounter += 1
+            executionStatus = .error(feedbackCounter)
         }
 
         isExecuting = false
