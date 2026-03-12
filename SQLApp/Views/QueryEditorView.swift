@@ -3,9 +3,9 @@ import SwiftUI
 /// The main SQL editor view where users write and execute SQL queries.
 ///
 /// Composed of three vertical sections:
-/// 1. **SQL Input** - A `TextEditor` with monospaced font for writing SQL,
-///    featuring a floating "Clear" button that appears when the editor receives
-///    focus and already contains text.
+/// 1. **SQL Input** - A ``SQLTextEditorView`` (UITextView-backed) with syntax
+///    highlighting, auto-uppercase of SQL keywords, and a floating "Clear"
+///    button that appears when the editor receives focus and already contains text.
 /// 2. **Control Bar** - A "Run" button to execute the query, a progress indicator
 ///    during execution, and a color-coded execution summary message.
 /// 3. **Results Section** - Displays query results via ``ResultsTableView``,
@@ -21,8 +21,16 @@ struct QueryEditorView: View {
     /// The ViewModel that manages the editor's state and SQL execution logic.
     @Bindable var viewModel: QueryEditorViewModel
 
+    /// The settings ViewModel providing the keyword highlight color.
+    let settingsViewModel: SettingsViewModel
+
     /// Tracks whether the SQL text editor currently has keyboard focus.
-    @FocusState private var isEditorFocused: Bool
+    ///
+    /// Uses a plain `@State` Bool instead of `@FocusState` because the editor
+    /// is a `UIViewRepresentable` that manages focus through its coordinator.
+    /// The ``SQLTextEditorCoordinator`` updates this binding via
+    /// `textViewDidBeginEditing` and `textViewDidEndEditing`.
+    @State private var isEditorFocused = false
 
     /// Controls the visibility of the floating "Clear" button inside the text editor.
     /// Shows when the editor gains focus with existing text; hides on any text change.
@@ -39,7 +47,7 @@ struct QueryEditorView: View {
             }
             .contentShape(Rectangle())
             .onTapGesture {
-                isEditorFocused = false
+                dismissKeyboard()
             }
             .navigationTitle("SQL Editor")
             .sensoryFeedback(.success, trigger: viewModel.executionStatus) { old, new in
@@ -55,52 +63,55 @@ struct QueryEditorView: View {
 
     // MARK: - SQL Input
 
-    /// The SQL text editor area with a floating "Clear" button overlay.
+    /// The SQL text editor area with syntax highlighting and a floating "Clear" button overlay.
+    ///
+    /// Uses ``SQLTextEditorView`` (a `UIViewRepresentable` wrapping `UITextView`) to
+    /// support `NSAttributedString`-based syntax highlighting. SQL keywords are displayed
+    /// in the color configured via ``SettingsViewModel`` and with semibold weight.
     ///
     /// The "Clear" button appears in the top-right corner when the editor gains
     /// focus and already contains text. It disappears as soon as the user types
     /// or deletes any character, or when the editor loses focus.
     private var sqlInputSection: some View {
-        TextEditor(text: $viewModel.sqlText)
-            .font(.system(.body, design: .monospaced))
-            .focused($isEditorFocused)
-            .frame(minHeight: 120, maxHeight: 200)
-            .scrollContentBackground(.hidden)
-            .padding(8)
-            .background(Color(.systemGray6))
-            .overlay(alignment: .topTrailing) {
-                if showClearButton {
-                    Button {
-                        viewModel.sqlText = ""
-                        showClearButton = false
-                    } label: {
-                        Text("Clear")
-                            .font(.caption.bold())
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
-                    }
-                    .padding(8)
-                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
-                }
-            }
-            .animation(.easeInOut(duration: 0.2), value: showClearButton)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .padding(.horizontal)
-            .padding(.top, 8)
-            .onChange(of: isEditorFocused) { _, focused in
-                if focused && !viewModel.sqlText.isEmpty {
-                    showClearButton = true
-                } else {
+        SQLTextEditorView(
+            text: $viewModel.sqlText,
+            isFocused: $isEditorFocused,
+            keywordColor: settingsViewModel.keywordUIColor
+        )
+        .frame(minHeight: 120, maxHeight: 200)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(alignment: .topTrailing) {
+            if showClearButton {
+                Button {
+                    viewModel.sqlText = ""
                     showClearButton = false
+                } label: {
+                    Text("Clear")
+                        .font(.caption.bold())
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
                 }
+                .padding(8)
+                .transition(.opacity.combined(with: .scale(scale: 0.8)))
             }
-            .onChange(of: viewModel.sqlText) {
-                if showClearButton {
-                    showClearButton = false
-                }
+        }
+        .animation(.easeInOut(duration: 0.2), value: showClearButton)
+        .padding(.horizontal)
+        .padding(.top, 8)
+        .onChange(of: isEditorFocused) { _, focused in
+            if focused && !viewModel.sqlText.isEmpty {
+                showClearButton = true
+            } else {
+                showClearButton = false
             }
+        }
+        .onChange(of: viewModel.sqlText) {
+            if showClearButton {
+                showClearButton = false
+            }
+        }
     }
 
     // MARK: - Control Bar
@@ -113,7 +124,7 @@ struct QueryEditorView: View {
     private var controlBar: some View {
         HStack {
             Button {
-                isEditorFocused = false
+                dismissKeyboard()
                 Task { await viewModel.executeSQL() }
             } label: {
                 Label("Run", systemImage: "play.fill")
@@ -151,7 +162,7 @@ struct QueryEditorView: View {
     /// - **Non-query success**: A "Done" confirmation with the execution summary.
     /// - **Empty**: A placeholder prompting the user to write and run a query.
     ///
-    /// A dismiss button (×) appears in the top-right corner when any result or
+    /// A dismiss button (x) appears in the top-right corner when any result or
     /// error is present, allowing the user to clear the output area.
     private var resultsSection: some View {
         Group {
@@ -211,5 +222,17 @@ struct QueryEditorView: View {
         case .idle:
             return .secondary
         }
+    }
+
+    /// Dismisses the keyboard by resigning the current first responder.
+    ///
+    /// Uses `UIApplication.sendAction` to safely resign first responder
+    /// without directly manipulating `UITextView` from `updateUIView`,
+    /// which would cause delegate callbacks and SwiftUI update cycles.
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
     }
 }
