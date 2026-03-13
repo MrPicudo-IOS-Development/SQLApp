@@ -31,12 +31,8 @@ struct ContentView: View {
     /// - Parameter databaseService: The database service shared across tabs
     ///   for executing SQL operations. Injected from ``SQLAppApp``.
     init(databaseService: any DatabaseServiceProtocol) {
-        self._queryEditorVM = State(
-            initialValue: QueryEditorViewModel(databaseService: databaseService)
-        )
-        self._tableBrowserVM = State(
-            initialValue: TableBrowserViewModel(databaseService: databaseService)
-        )
+        self._queryEditorVM = State(initialValue: QueryEditorViewModel(databaseService: databaseService))
+        self._tableBrowserVM = State(initialValue: TableBrowserViewModel(databaseService: databaseService))
     }
 
     var body: some View {
@@ -49,7 +45,10 @@ struct ContentView: View {
             }
 
             Tab("Tables", systemImage: "tablecells") {
-                TableListView(viewModel: tableBrowserVM, settingsViewModel: settingsVM)
+                TableListView(
+                    viewModel: tableBrowserVM,
+                    settingsViewModel: settingsVM
+                )
             }
 
             Tab("Settings", systemImage: "gearshape") {

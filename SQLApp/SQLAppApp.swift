@@ -1,3 +1,8 @@
+//
+//  SQLAppApp.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import SwiftUI
 
 /// The entry point of the SQLApp application.

@@ -15,6 +15,8 @@
 //
 // ============================================================
 
+
+
 // MARK: - SESIÓN 1: Visión General y Punto de Entrada
 // ============================================================
 //
@@ -136,6 +138,8 @@
 // ¿Qué ViewModel recibe cada vista? ¿Cuáles se comparten entre tabs?
 
 
+
+
 // MARK: - SESIÓN 2: Modelos de Datos
 // ============================================================
 //
@@ -228,6 +232,8 @@
 // Agrega un nuevo modelo `ExportFormat` (enum con casos .csv, .json, .sql)
 // que pueda usarse para una futura funcionalidad de exportar resultados.
 // Hazlo Sendable, CaseIterable, y con rawValue String.
+
+
 
 
 // MARK: - SESIÓN 3: La Capa de Servicios — Protocolo y SQLite
@@ -381,6 +387,8 @@
 // b) ¿Dónde se cierra?
 // c) ¿Qué pasa si sqlite3_prepare_v2 falla?
 // d) ¿Por qué executeQuery usa prepare/step/finalize y executeNonQuery usa exec?
+
+
 
 
 // MARK: - SESIÓN 4: ViewModels y el Macro @Observable

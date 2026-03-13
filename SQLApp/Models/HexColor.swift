@@ -36,8 +36,7 @@ enum HexColor {
             sanitized.removeFirst()
         }
 
-        guard sanitized.count == 6,
-              let rgbValue = UInt64(sanitized, radix: 16) else {
+        guard sanitized.count == 6, let rgbValue = UInt64(sanitized, radix: 16) else {
             return UIColor(red: 0x7B / 255.0, green: 0x1F / 255.0, blue: 0xA2 / 255.0, alpha: 1)
         }
 
