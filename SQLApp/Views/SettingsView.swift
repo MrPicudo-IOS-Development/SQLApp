@@ -1,3 +1,8 @@
+//
+//  SettingsView.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import SwiftUI
 
 /// The settings screen where users can customize the SQL editor's appearance.

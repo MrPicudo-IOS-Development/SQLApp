@@ -1,3 +1,8 @@
+//
+//  HexColor.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import SwiftUI
 
 /// Provides conversion utilities between hex color strings and SwiftUI/UIKit colors.

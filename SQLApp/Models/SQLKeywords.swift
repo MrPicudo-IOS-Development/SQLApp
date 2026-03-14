@@ -1,3 +1,8 @@
+//
+//  SQLKeywords.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import Foundation
 
 /// Contains the complete set of SQLite reserved keywords used for

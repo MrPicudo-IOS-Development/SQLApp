@@ -1,3 +1,8 @@
+//
+//  ExecutionStatus.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import Foundation
 
 /// Represents the outcome of the most recent SQL query execution.

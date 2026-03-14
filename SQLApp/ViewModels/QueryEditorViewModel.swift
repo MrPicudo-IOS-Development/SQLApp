@@ -1,3 +1,8 @@
+//
+//  QueryEditorViewModel.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import Foundation
 
 /// ViewModel that manages the state and business logic for the SQL editor screen.
@@ -10,6 +15,7 @@ import Foundation
 /// Uses the `@Observable` macro for automatic SwiftUI view tracking without
 /// requiring `@Published` property wrappers.
 @Observable
+@MainActor
 final class QueryEditorViewModel {
 
     // MARK: - State

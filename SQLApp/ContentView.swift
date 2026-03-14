@@ -1,3 +1,8 @@
+//
+//  ContentView.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import SwiftUI
 
 /// The root view of the application, providing tab-based navigation between

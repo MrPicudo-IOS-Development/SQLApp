@@ -1,3 +1,8 @@
+//
+//  DatabaseError.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import Foundation
 
 /// Represents all possible errors that can occur during database operations.

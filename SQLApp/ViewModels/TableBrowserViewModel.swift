@@ -1,3 +1,8 @@
+//
+//  TableBrowserViewModel.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import Foundation
 
 /// ViewModel that manages the state and business logic for the table browser screen.
@@ -8,6 +13,7 @@ import Foundation
 ///
 /// Uses the `@Observable` macro for automatic SwiftUI view tracking.
 @Observable
+@MainActor
 final class TableBrowserViewModel {
 
     // MARK: - State

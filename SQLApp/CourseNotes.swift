@@ -515,6 +515,8 @@
 // agregar una nueva).
 
 
+
+
 // MARK: - SESIÓN 5: Funciones Asíncronas en Profundidad
 // ============================================================
 //
@@ -667,6 +669,8 @@
 // - ¿Cómo reportas cuáles tuvieron éxito y cuáles no?
 
 
+
+
 // MARK: - SESIÓN 6: Persistencia de Datos
 // ============================================================
 //
@@ -795,6 +799,8 @@
 // el historial al iniciar y guardar cada nueva consulta.
 
 
+
+
 // MARK: - SESIÓN 7: UIViewRepresentable y Syntax Highlighting
 // ============================================================
 //
@@ -913,6 +919,8 @@
 // c) Actualizar los números cuando el texto cambie.
 
 
+
+
 // MARK: - SESIÓN 8: Vistas SwiftUI y Patrones de UI
 // ============================================================
 //
@@ -1026,6 +1034,8 @@
 // historial, debe cargarla en el editor (usa viewModel.loadHistoryItem).
 
 
+
+
 // MARK: - SESIÓN 9: Testing y Calidad de Código
 // ============================================================
 //
@@ -1119,6 +1129,8 @@
 // EJERCICIO SESIÓN 9:
 // Crea un target de tests en el proyecto. Implementa MockDatabaseService
 // y escribe al menos 5 unit tests para QueryEditorViewModel.
+
+
 
 
 // MARK: - SESIÓN 10: Escalabilidad y Mejoras Futuras

@@ -1,3 +1,8 @@
+//
+//  SQLTextEditorView.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import SwiftUI
 
 /// A SwiftUI-compatible SQL text editor with syntax highlighting.

@@ -1,3 +1,8 @@
+//
+//  QueryHistoryItem.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import Foundation
 
 /// Records a previously executed SQL query along with its outcome.

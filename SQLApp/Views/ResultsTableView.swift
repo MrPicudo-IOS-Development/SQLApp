@@ -1,3 +1,8 @@
+//
+//  ResultsTableView.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import SwiftUI
 
 /// A reusable view that displays SQL query results in a scrollable grid format.

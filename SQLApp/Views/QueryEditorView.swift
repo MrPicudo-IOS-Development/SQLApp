@@ -1,3 +1,8 @@
+//
+//  QueryEditorView.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import SwiftUI
 
 /// The main SQL editor view where users write and execute SQL queries.

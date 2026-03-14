@@ -1,3 +1,8 @@
+//
+//  ColumnInfo.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import Foundation
 
 /// Represents the schema definition of a single column within a database table.

@@ -1,3 +1,8 @@
+//
+//  SettingsViewModel.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import SwiftUI
 
 /// ViewModel that manages user preferences for the SQL editor appearance.
@@ -9,6 +14,7 @@ import SwiftUI
 ///
 /// Uses the `@Observable` macro for automatic SwiftUI view tracking.
 @Observable
+@MainActor
 final class SettingsViewModel {
 
     // MARK: - Constants

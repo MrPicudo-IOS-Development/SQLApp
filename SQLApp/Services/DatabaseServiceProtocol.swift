@@ -1,3 +1,8 @@
+//
+//  DatabaseServiceProtocol.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import Foundation
 
 /// Defines the contract for all database operations in the application.

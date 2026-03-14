@@ -1,3 +1,8 @@
+//
+//  TableListView.swift -> SQLApp
+//  Created by José Miguel Torres Chávez Nava on 10/03/26.
+//
+
 import SwiftUI
 
 /// Displays a navigable list of all user-created tables in the database.
