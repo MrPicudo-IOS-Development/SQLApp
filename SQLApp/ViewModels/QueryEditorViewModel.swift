@@ -42,6 +42,20 @@ final class QueryEditorViewModel {
     /// The associated counter ensures the trigger fires on consecutive same-type outcomes.
     var executionStatus: ExecutionStatus = .idle
 
+    /// The tables the user has pinned to the editor's empty state for quick reference.
+    /// Each entry contains the table name and a snapshot of its data at the time of pinning.
+    var pinnedTables: [PinnedTable] = []
+
+    /// The list of available table names for pinning, excluding already-pinned tables.
+    /// Loaded on demand each time the user opens the table picker.
+    var availableTablesForPinning: [String] = []
+
+    /// Whether the table selection sheet is currently presented.
+    var isShowingTablePicker: Bool = false
+
+    /// Whether the available tables list is currently being loaded from the database.
+    var isLoadingTables: Bool = false
+
     // MARK: - Dependencies
 
     /// The database service used to execute all SQL operations.
@@ -88,13 +102,20 @@ final class QueryEditorViewModel {
                 queryResult = result
                 executionMessage = "\(result.rowCount) row(s) returned"
                 addToHistory(sql: trimmed, success: true, rows: result.rowCount)
+                try? await databaseService.saveHistoryItem(
+                    QueryHistoryItem(sql: trimmed, wasSuccessful: true, rowsAffected: result.rowCount)
+                )
             } else {
                 let affected = try await databaseService.executeNonQuery(trimmed)
                 executionMessage = "\(affected) row(s) affected"
                 addToHistory(sql: trimmed, success: true, rows: affected)
+                try? await databaseService.saveHistoryItem(
+                    QueryHistoryItem(sql: trimmed, wasSuccessful: true, rowsAffected: affected)
+                )
             }
             feedbackCounter += 1
             executionStatus = .success(feedbackCounter)
+            pinnedTables.removeAll()
         } catch {
             errorMessage = error.localizedDescription
             addToHistory(sql: trimmed, success: false, errorMsg: error.localizedDescription)
@@ -120,6 +141,48 @@ final class QueryEditorViewModel {
     /// - Parameter item: The history item whose SQL text should be loaded into the editor.
     func loadHistoryItem(_ item: QueryHistoryItem) {
         sqlText = item.sql
+    }
+
+    /// Loads the list of available tables from the database, excluding already-pinned tables.
+    ///
+    /// Called when the user taps the "Pin Table" button, just before presenting the
+    /// table picker sheet. Filters out any table names already present in ``pinnedTables``.
+    func loadAvailableTables() async {
+        isLoadingTables = true
+        do {
+            let allTables = try await databaseService.listTables()
+            let pinnedNames = Set(pinnedTables.map(\.name))
+            availableTablesForPinning = allTables.filter { !pinnedNames.contains($0) }
+        } catch {
+            availableTablesForPinning = []
+        }
+        isLoadingTables = false
+    }
+
+    /// Pins a table by loading its data and adding it to ``pinnedTables``.
+    ///
+    /// After pinning, the table is removed from ``availableTablesForPinning`` so it
+    /// cannot be pinned a second time. The table picker sheet is dismissed automatically.
+    ///
+    /// - Parameter tableName: The name of the table to pin.
+    func pinTable(_ tableName: String) async {
+        do {
+            let data = try await databaseService.getTableData(tableName, limit: 10)
+            let info = try await databaseService.getTableInfo(tableName)
+            let pinned = PinnedTable(name: tableName, data: data, info: info)
+            pinnedTables.append(pinned)
+            availableTablesForPinning.removeAll { $0 == tableName }
+        } catch {
+            // The table picker remains open for retry
+        }
+        isShowingTablePicker = false
+    }
+
+    /// Removes a pinned table from the display without affecting the database.
+    ///
+    /// - Parameter pinnedTable: The pinned table to remove.
+    func unpinTable(_ pinnedTable: PinnedTable) {
+        pinnedTables.removeAll { $0.id == pinnedTable.id }
     }
 
     // MARK: - Private

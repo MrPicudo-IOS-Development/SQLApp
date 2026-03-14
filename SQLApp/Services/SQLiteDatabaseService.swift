@@ -49,6 +49,21 @@ final class SQLiteDatabaseService: DatabaseServiceProtocol, @unchecked Sendable 
             print("Error opening database: \(errorMessage)")
             db = nil
         }
+
+        // Create the internal history table if it does not exist yet.
+        if let db {
+            let createHistorySQL = """
+                CREATE TABLE IF NOT EXISTS _query_history (
+                    id TEXT PRIMARY KEY,
+                    sql TEXT NOT NULL,
+                    executed_at REAL NOT NULL,
+                    was_successful INTEGER NOT NULL,
+                    rows_affected INTEGER,
+                    error_message TEXT
+                )
+                """
+            sqlite3_exec(db, createHistorySQL, nil, nil, nil)
+        }
     }
 
     deinit {
@@ -168,7 +183,7 @@ final class SQLiteDatabaseService: DatabaseServiceProtocol, @unchecked Sendable 
     /// - Throws: ``DatabaseError`` if the underlying query fails.
     nonisolated func listTables() async throws -> [String] {
         let result = try await executeQuery(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '\\_%' ESCAPE '\\' ORDER BY name"
         )
         return result.rows.map { $0[0] }
     }
@@ -207,5 +222,116 @@ final class SQLiteDatabaseService: DatabaseServiceProtocol, @unchecked Sendable 
     /// - Throws: ``DatabaseError`` if the underlying query fails.
     nonisolated func getTableData(_ tableName: String, limit: Int = 100) async throws -> QueryResult {
         try await executeQuery("SELECT * FROM \(tableName) LIMIT \(limit)")
+    }
+
+    // MARK: - Query History Persistence
+
+    /// Inserts a query history item into the `_query_history` table.
+    nonisolated func saveHistoryItem(_ item: QueryHistoryItem) async throws {
+        try await performOnQueue { db in
+            guard let db else { throw DatabaseError.databaseNotOpen }
+
+            let sql = """
+                INSERT INTO _query_history (id, sql, executed_at, was_successful, rows_affected, error_message)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """
+
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                let message = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.prepareFailed(message)
+            }
+            defer { sqlite3_finalize(statement) }
+
+            // SQLITE_TRANSIENT tells SQLite to copy the string immediately,
+            // so the pointer does not need to outlive the bind call.
+            let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+
+            let idString = item.id.uuidString
+            sqlite3_bind_text(statement, 1, idString, -1, transient)
+            sqlite3_bind_text(statement, 2, item.sql, -1, transient)
+            sqlite3_bind_double(statement, 3, item.executedAt.timeIntervalSince1970)
+            sqlite3_bind_int(statement, 4, item.wasSuccessful ? 1 : 0)
+
+            if let rows = item.rowsAffected {
+                sqlite3_bind_int(statement, 5, Int32(rows))
+            } else {
+                sqlite3_bind_null(statement, 5)
+            }
+
+            if let error = item.errorMessage {
+                sqlite3_bind_text(statement, 6, error, -1, transient)
+            } else {
+                sqlite3_bind_null(statement, 6)
+            }
+
+            if sqlite3_step(statement) != SQLITE_DONE {
+                let message = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.queryFailed(message)
+            }
+        }
+    }
+
+    /// Loads all history items from the `_query_history` table, newest first.
+    nonisolated func loadHistory() async throws -> [QueryHistoryItem] {
+        try await performOnQueue { db in
+            guard let db else { throw DatabaseError.databaseNotOpen }
+
+            let sql = "SELECT id, sql, executed_at, was_successful, rows_affected, error_message FROM _query_history ORDER BY executed_at DESC"
+
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                let message = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.prepareFailed(message)
+            }
+            defer { sqlite3_finalize(statement) }
+
+            var items: [QueryHistoryItem] = []
+
+            while sqlite3_step(statement) == SQLITE_ROW {
+                let idString = sqlite3_column_text(statement, 0).map { String(cString: $0) } ?? ""
+                let sqlText = sqlite3_column_text(statement, 1).map { String(cString: $0) } ?? ""
+                let executedAt = Date(timeIntervalSince1970: sqlite3_column_double(statement, 2))
+                let wasSuccessful = sqlite3_column_int(statement, 3) == 1
+
+                let rowsAffected: Int? = sqlite3_column_type(statement, 4) != SQLITE_NULL
+                    ? Int(sqlite3_column_int(statement, 4))
+                    : nil
+
+                let errorMessage: String? = sqlite3_column_type(statement, 5) != SQLITE_NULL
+                    ? sqlite3_column_text(statement, 5).map { String(cString: $0) }
+                    : nil
+
+                if let uuid = UUID(uuidString: idString) {
+                    let item = QueryHistoryItem(
+                        id: uuid,
+                        sql: sqlText,
+                        executedAt: executedAt,
+                        wasSuccessful: wasSuccessful,
+                        rowsAffected: rowsAffected,
+                        errorMessage: errorMessage
+                    )
+                    items.append(item)
+                }
+            }
+
+            return items
+        }
+    }
+
+    /// Deletes all rows from the `_query_history` table.
+    nonisolated func clearHistory() async throws {
+        _ = try await performOnQueue { db in
+            guard let db else { throw DatabaseError.databaseNotOpen }
+
+            var errorPointer: UnsafeMutablePointer<CChar>?
+            let result = sqlite3_exec(db, "DELETE FROM _query_history", nil, nil, &errorPointer)
+
+            if result != SQLITE_OK {
+                let message = errorPointer.map { String(cString: $0) } ?? "Unknown error"
+                sqlite3_free(errorPointer)
+                throw DatabaseError.queryFailed(message)
+            }
+        }
     }
 }

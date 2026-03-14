@@ -22,6 +22,9 @@ final class SettingsViewModel {
     /// The `UserDefaults` key used to store the keyword color hex string.
     private static let keywordColorKey = "sqlKeywordColorHex"
 
+    /// The `UserDefaults` key used to store the pinned table display mode.
+    private static let pinnedDisplayModeKey = "pinnedTableDisplayMode"
+
     // MARK: - State
 
     /// The keyword highlight color as a SwiftUI `Color`.
@@ -55,6 +58,16 @@ final class SettingsViewModel {
         }
     }
 
+    /// How pinned tables are displayed in the SQL editor: row data or column schema.
+    ///
+    /// Persisted immediately to `UserDefaults` on every change via the `didSet` observer.
+    /// Defaults to ``PinnedTableDisplayMode/data`` when no value has been saved previously.
+    var pinnedTableDisplayMode: PinnedTableDisplayMode {
+        didSet {
+            UserDefaults.standard.set(pinnedTableDisplayMode.rawValue, forKey: Self.pinnedDisplayModeKey)
+        }
+    }
+
     // MARK: - Initialization
 
     /// Creates a new settings ViewModel, loading the persisted keyword color
@@ -64,5 +77,8 @@ final class SettingsViewModel {
             ?? HexColor.defaultKeywordHex
         self.keywordColorHex = hex
         self.keywordUIColor = HexColor.uiColor(from: hex)
+
+        let modeRaw = UserDefaults.standard.string(forKey: Self.pinnedDisplayModeKey) ?? ""
+        self.pinnedTableDisplayMode = PinnedTableDisplayMode(rawValue: modeRaw) ?? .data
     }
 }

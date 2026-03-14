@@ -29,6 +29,10 @@ struct QueryEditorView: View {
     /// The settings ViewModel providing the keyword highlight color.
     let settingsViewModel: SettingsViewModel
 
+    /// The title displayed at the top of the editor. Defaults to `"SQL Editor"`.
+    /// Can be overridden when reusing this view in other flows.
+    var title: String = "SQL Editor"
+
     /// Tracks whether the SQL text editor currently has keyboard focus.
     ///
     /// Uses a plain `@State` Bool instead of `@FocusState` because the editor
@@ -44,6 +48,7 @@ struct QueryEditorView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                titleHeader
                 sqlInputSection
                 controlBar
                 resultsSection
@@ -52,7 +57,7 @@ struct QueryEditorView: View {
             .onTapGesture {
                 dismissKeyboard()
             }
-            .navigationTitle("SQL Editor")
+            .navigationBarHidden(true)
             .sensoryFeedback(.success, trigger: viewModel.executionStatus) { old, new in
                 if case .success = new { return true }
                 return false
@@ -61,7 +66,23 @@ struct QueryEditorView: View {
                 if case .error = new { return true }
                 return false
             }
+            .sheet(isPresented: $viewModel.isShowingTablePicker) {
+                tablePickerSheet
+            }
         }
+    }
+
+    // MARK: - Title Header
+
+    /// The inline title label displayed at the top of the editor,
+    /// replacing the standard navigation title for reusability across flows.
+    private var titleHeader: some View {
+        Text(title)
+            .font(.title3)
+            .fontWeight(.semibold)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal)
+            .padding(.top, 8)
     }
 
     // MARK: - SQL Input
@@ -190,28 +211,205 @@ struct QueryEditorView: View {
                     description: Text(viewModel.executionMessage ?? "")
                 )
             } else {
-                ContentUnavailableView {
-                    Label("No Results", systemImage: "text.page")
-                        .foregroundStyle(settingsViewModel.keywordColor)
-                } description: {
-                    Text("Write a SQL query and tap Run")
-                        .padding(.top)
-                }
+                emptyStateWithPinnedTables
             }
         }
         .frame(maxHeight: .infinity)
         .overlay(alignment: .topTrailing) {
             if hasResults {
-                Button(role: .destructive) {
+                Button {
                     viewModel.clearResults()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.title3)
+                        .font(.body)
                         .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(8)
             }
         }
+    }
+
+    // MARK: - Empty State & Pinned Tables
+
+    /// The empty state view that includes the "Pin Table" button and any pinned table data.
+    ///
+    /// When no pinned tables exist, shows the original "No Results" placeholder with an
+    /// additional "Pin Table" button. When tables are pinned, shows each table's data
+    /// in a scrollable list with the "Pin Table" button at the bottom for adding more.
+    private var emptyStateWithPinnedTables: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                if viewModel.pinnedTables.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "text.page")
+                            .font(.system(size: 40))
+                            .foregroundStyle(settingsViewModel.keywordColor)
+                        Text("No Results")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                        Text("Create, edit, or query your tables from the Tables section using SQL statements")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                    .padding(.top, 40)
+                }
+
+                ForEach(viewModel.pinnedTables) { pinned in
+                    pinnedTableCard(pinned)
+                }
+
+                pinTableButton
+            }
+            .padding(.bottom, 16)
+        }
+    }
+
+    /// A card displaying a single pinned table with its name header and content.
+    ///
+    /// Shows row data or column schema depending on the current
+    /// ``SettingsViewModel/pinnedTableDisplayMode``. Includes an "Unpin" button
+    /// in the header so the user can remove the pinned table from the display.
+    private func pinnedTableCard(_ pinned: PinnedTable) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Label(pinned.name, systemImage: "tablecells")
+                    .font(.headline)
+                    .foregroundStyle(settingsViewModel.keywordColor)
+                Spacer()
+                Button {
+                    viewModel.unpinTable(pinned)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.body)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+
+            switch settingsViewModel.pinnedTableDisplayMode {
+            case .data:
+                ResultsTableView(result: pinned.data, headerColor: settingsViewModel.keywordColor)
+                    .frame(minHeight: 150, maxHeight: 300)
+            case .structure:
+                pinnedTableStructure(pinned.info)
+                    .frame(minHeight: 100, maxHeight: 300)
+            }
+        }
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        .padding(.horizontal)
+    }
+
+    /// A two-column grid displaying a table's column names and types,
+    /// styled consistently with ``ResultsTableView``.
+    private func pinnedTableStructure(_ info: TableInfo) -> some View {
+        ScrollView([.horizontal, .vertical]) {
+            Grid(alignment: .leading, horizontalSpacing: 0, verticalSpacing: 0) {
+                GridRow {
+                    Text("Column")
+                        .font(.system(.caption, design: .monospaced).bold())
+                        .foregroundStyle(settingsViewModel.keywordColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.systemGray5))
+                    Text("Type")
+                        .font(.system(.caption, design: .monospaced).bold())
+                        .foregroundStyle(settingsViewModel.keywordColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.systemGray5))
+                }
+
+                ForEach(Array(info.columns.enumerated()), id: \.offset) { index, column in
+                    GridRow {
+                        Text(column.name)
+                            .font(.system(.caption, design: .monospaced))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+                            .background(index.isMultiple(of: 2) ? Color.clear : Color(.systemGray6))
+                        Text(column.type)
+                            .font(.system(.caption, design: .monospaced))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+                            .background(index.isMultiple(of: 2) ? Color.clear : Color(.systemGray6))
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Pin Table Button
+
+    /// A button that opens the table selection sheet for pinning a new table.
+    private var pinTableButton: some View {
+        Button {
+            Task {
+                await viewModel.loadAvailableTables()
+                viewModel.isShowingTablePicker = true
+            }
+        } label: {
+            Label("Pin Table", systemImage: "pin")
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Table Picker Sheet
+
+    /// A modal sheet presenting the list of available tables for the user to pin.
+    ///
+    /// Follows Apple HIG for modal selection: includes a navigation bar with a
+    /// "Cancel" button, a list of table names, and dismisses on selection.
+    /// Tables already pinned are filtered out of the list.
+    private var tablePickerSheet: some View {
+        NavigationStack {
+            Group {
+                if viewModel.isLoadingTables {
+                    ProgressView("Loading tables...")
+                } else if viewModel.availableTablesForPinning.isEmpty {
+                    ContentUnavailableView(
+                        "No Tables Available",
+                        systemImage: "tablecells.badge.ellipsis",
+                        description: Text("All tables are already pinned, or no tables exist yet")
+                    )
+                } else {
+                    List(viewModel.availableTablesForPinning, id: \.self) { tableName in
+                        Button {
+                            Task { await viewModel.pinTable(tableName) }
+                        } label: {
+                            Label {
+                                Text(tableName)
+                            } icon: {
+                                Image(systemName: "tablecells")
+                                    .foregroundStyle(settingsViewModel.keywordColor)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle("Pin a Table")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        viewModel.isShowingTablePicker = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 
     // MARK: - Helpers

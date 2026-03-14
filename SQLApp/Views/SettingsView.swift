@@ -24,6 +24,18 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
+                    Picker("Pinned Tables Display", selection: $viewModel.pinnedTableDisplayMode) {
+                        ForEach(PinnedTableDisplayMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                } header: {
+                    Text("Pinned Tables")
+                } footer: {
+                    Text("Choose whether pinned tables in the SQL Editor show row data or column structure.")
+                }
+                
+                Section {
                     ColorPicker(
                         "Keyword Color",
                         selection: $viewModel.keywordColor,
@@ -34,7 +46,7 @@ struct SettingsView: View {
                 } footer: {
                     Text("Color applied to SQL keywords like SELECT, FROM, WHERE, etc.")
                 }
-
+                
                 Section("Preview") {
                     Text(highlightedPreview)
                         .font(.system(.body, design: .monospaced))

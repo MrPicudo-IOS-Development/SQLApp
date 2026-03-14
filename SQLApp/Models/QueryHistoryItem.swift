@@ -12,7 +12,7 @@ import Foundation
 /// an in-memory history of all queries executed during the session.
 ///
 /// Conforms to `Sendable` to allow safe transfer across actor boundaries.
-struct QueryHistoryItem: Identifiable, Sendable {
+struct QueryHistoryItem: Identifiable, Sendable, Codable {
 
     /// A unique identifier for this history entry.
     let id: UUID
@@ -49,6 +49,34 @@ struct QueryHistoryItem: Identifiable, Sendable {
         self.id = UUID()
         self.sql = sql
         self.executedAt = Date()
+        self.wasSuccessful = wasSuccessful
+        self.rowsAffected = rowsAffected
+        self.errorMessage = errorMessage
+    }
+
+    /// Creates a history item with all fields specified explicitly.
+    ///
+    /// Used to reconstruct items loaded from the persistent `_query_history` table,
+    /// where the identifier and timestamp are already known.
+    ///
+    /// - Parameters:
+    ///   - id: The unique identifier for this entry.
+    ///   - sql: The SQL statement that was executed.
+    ///   - executedAt: The date and time when the query was originally executed.
+    ///   - wasSuccessful: Whether the query executed without errors.
+    ///   - rowsAffected: The number of rows affected or returned. Defaults to `nil`.
+    ///   - errorMessage: The error message if execution failed. Defaults to `nil`.
+    init(
+        id: UUID,
+        sql: String,
+        executedAt: Date,
+        wasSuccessful: Bool,
+        rowsAffected: Int? = nil,
+        errorMessage: String? = nil
+    ) {
+        self.id = id
+        self.sql = sql
+        self.executedAt = executedAt
         self.wasSuccessful = wasSuccessful
         self.rowsAffected = rowsAffected
         self.errorMessage = errorMessage

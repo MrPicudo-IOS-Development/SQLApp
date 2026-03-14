@@ -63,4 +63,23 @@ protocol DatabaseServiceProtocol: Sendable {
     /// - Returns: A ``QueryResult`` containing the table's column names and row data.
     /// - Throws: ``DatabaseError`` if the underlying query fails.
     func getTableData(_ tableName: String, limit: Int) async throws -> QueryResult
+
+    // MARK: - Query History Persistence
+
+    /// Saves a query history item to the persistent `_query_history` table.
+    ///
+    /// - Parameter item: The history item to persist.
+    /// - Throws: ``DatabaseError`` if the insert fails.
+    func saveHistoryItem(_ item: QueryHistoryItem) async throws
+
+    /// Loads all persisted query history items, ordered by execution date (newest first).
+    ///
+    /// - Returns: An array of ``QueryHistoryItem`` instances from the `_query_history` table.
+    /// - Throws: ``DatabaseError`` if the query fails.
+    func loadHistory() async throws -> [QueryHistoryItem]
+
+    /// Deletes all persisted query history items from the `_query_history` table.
+    ///
+    /// - Throws: ``DatabaseError`` if the delete fails.
+    func clearHistory() async throws
 }
