@@ -6,8 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C28632032F6A96A800BE7039 /* CourseNotesV2.md in Resources */ = {isa = PBXBuildFile; fileRef = C28632022F6A96A800BE7039 /* CourseNotesV2.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		43E059182F62A184003D7C4C /* SQLApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SQLApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C28632022F6A96A800BE7039 /* CourseNotesV2.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CourseNotesV2.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -34,6 +39,7 @@
 			children = (
 				43E0591A2F62A184003D7C4C /* SQLApp */,
 				43E059192F62A184003D7C4C /* Products */,
+				C28632022F6A96A800BE7039 /* CourseNotesV2.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -109,6 +115,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C28632032F6A96A800BE7039 /* CourseNotesV2.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,5 +1,5 @@
 //
-//  HistoryViewModel.swift -> SQLApp
+//  DatabaseViewModel.swift -> SQLApp
 //  Created by José Miguel Torres Chávez Nava on 14/03/26.
 //
 
@@ -8,12 +8,12 @@ import Foundation
 /// ViewModel that manages the persistent query history loaded from the database.
 ///
 /// Provides loading and clearing of the `_query_history` table. Works alongside
-/// ``TableBrowserViewModel`` (which handles the tables section) inside ``HistoryView``.
+/// ``TableBrowserViewModel`` (which handles the tables section) inside ``DatabaseView``.
 ///
 /// Uses the `@Observable` macro for automatic SwiftUI view tracking.
 @Observable
 @MainActor
-final class HistoryViewModel {
+final class DatabaseViewModel {
 
     // MARK: - State
 

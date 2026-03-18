@@ -6,42 +6,67 @@
 import SwiftUI
 
 /// The root view of the application, providing tab-based navigation between
-/// the SQL editor, the history browser, and the settings screen.
+/// the SQL editor, the database browser, exercises, and the settings screen.
 ///
-/// Acts as the composition root for the view layer: it receives a
-/// ``DatabaseServiceProtocol`` instance via dependency injection and creates
-/// the ViewModels for each tab. ViewModels are stored as `@State` properties
-/// to preserve their state across tab switches and view re-evaluations.
+/// Acts as the composition root for the view layer: it receives two
+/// ``DatabaseServiceProtocol`` instances via dependency injection — one for the
+/// user's sandbox database and one for the app-controlled exercise database —
+/// and creates the ViewModels for each tab. ViewModels are stored as `@State`
+/// properties to preserve their state across tab switches and view re-evaluations.
 ///
-/// Contains three tabs:
-/// - **SQL Editor**: Powered by ``QueryEditorView`` and ``QueryEditorViewModel``.
-/// - **History**: Powered by ``HistoryView``, ``HistoryViewModel``, and ``TableBrowserViewModel``.
+/// Contains four tabs:
+/// - **SQL Editor**: Powered by ``QueryEditorView`` and ``QueryEditorViewModel`` (user database).
+/// - **Database**: Powered by ``DatabaseView``, ``DatabaseViewModel``, and ``TableBrowserViewModel`` (user database).
+/// - **Exercises**: Powered by ``ExercisesView`` with its own ``QueryEditorViewModel`` and ``ExercisesViewModel`` (app database).
 /// - **Settings**: Powered by ``SettingsView`` and ``SettingsViewModel``.
 ///
-/// The ``SettingsViewModel`` is shared between the Settings tab and the SQL Editor
-/// tab so that keyword color changes are reflected immediately in the editor.
+/// The ``SettingsViewModel`` is shared across all tabs so that keyword color
+/// changes are reflected immediately everywhere.
 struct ContentView: View {
+
+    // MARK: - User Database ViewModels
 
     /// The ViewModel for the SQL editor tab, preserved across tab switches.
     @State private var queryEditorVM: QueryEditorViewModel
 
-    /// The ViewModel for the table browser, used inside the History tab.
+    /// The ViewModel for the table browser, used inside the Database tab.
     @State private var tableBrowserVM: TableBrowserViewModel
 
-    /// The ViewModel for the persistent query history, used inside the History tab.
-    @State private var historyVM: HistoryViewModel
+    /// The ViewModel for the persistent query history, used inside the Database tab.
+    @State private var databaseVM: DatabaseViewModel
 
-    /// The ViewModel for settings, shared with the SQL editor for keyword color.
+    // MARK: - App Database ViewModels
+
+    /// The ViewModel for the exercises SQL editor, connected to the app database.
+    @State private var exercisesEditorVM: QueryEditorViewModel
+
+    /// Manages per-block table seeding for the Exercises tab.
+    @State private var exercisesVM: ExercisesViewModel
+
+    // MARK: - Shared
+
+    /// The ViewModel for settings, shared across all tabs for keyword color.
     @State private var settingsVM = SettingsViewModel()
 
-    /// Creates the root view with all ViewModels initialized from the shared database service.
+    // MARK: - Initialization
+
+    /// Creates the root view with all ViewModels initialized from both database services.
     ///
-    /// - Parameter databaseService: The database service shared across tabs
-    ///   for executing SQL operations. Injected from ``SQLAppApp``.
-    init(databaseService: any DatabaseServiceProtocol) {
-        self._queryEditorVM = State(initialValue: QueryEditorViewModel(databaseService: databaseService))
-        self._tableBrowserVM = State(initialValue: TableBrowserViewModel(databaseService: databaseService))
-        self._historyVM = State(initialValue: HistoryViewModel(databaseService: databaseService))
+    /// - Parameters:
+    ///   - userDatabaseService: The user's sandbox database service, used by SQL Editor and Database tabs.
+    ///   - appDatabaseService: The app-controlled exercise database, used by the Exercises tab.
+    init(
+        userDatabaseService: any DatabaseServiceProtocol,
+        appDatabaseService: any DatabaseServiceProtocol
+    ) {
+        // User database ViewModels
+        self._queryEditorVM = State(initialValue: QueryEditorViewModel(databaseService: userDatabaseService))
+        self._tableBrowserVM = State(initialValue: TableBrowserViewModel(databaseService: userDatabaseService))
+        self._databaseVM = State(initialValue: DatabaseViewModel(databaseService: userDatabaseService))
+
+        // App database ViewModels
+        self._exercisesEditorVM = State(initialValue: QueryEditorViewModel(databaseService: appDatabaseService))
+        self._exercisesVM = State(initialValue: ExercisesViewModel(databaseService: appDatabaseService))
     }
 
     var body: some View {
@@ -53,11 +78,19 @@ struct ContentView: View {
                 )
             }
 
-            Tab("History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
-                HistoryView(
-                    historyViewModel: historyVM,
+            Tab("Database", systemImage: "cylinder") {
+                DatabaseView(
+                    databaseViewModel: databaseVM,
                     tableBrowserViewModel: tableBrowserVM,
                     settingsViewModel: settingsVM
+                )
+            }
+
+            Tab("Exercises", systemImage: "book") {
+                ExercisesView(
+                    queryEditorViewModel: exercisesEditorVM,
+                    settingsViewModel: settingsVM,
+                    exercisesViewModel: exercisesVM
                 )
             }
 
@@ -69,5 +102,8 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView(databaseService: SQLiteDatabaseService(databaseName: "Preview.sqlite"))
+    ContentView(
+        userDatabaseService: SQLiteDatabaseService(databaseName: "Preview.sqlite"),
+        appDatabaseService: SQLiteDatabaseService(databaseName: "PreviewApp.sqlite", enableHistory: false)
+    )
 }

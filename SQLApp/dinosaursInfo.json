@@ -1,0 +1,23 @@
+[
+    "CREATE TABLE IF NOT EXISTS Dinosaurs (id INT PRIMARY KEY, name VARCHAR(50), period VARCHAR(30), diet VARCHAR(20), length_m DECIMAL(4,1), weight_tons DECIMAL(5,2), discovered_year INT, continent VARCHAR(30))",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (1, 'Tyrannosaurus rex', 'Cretaceous', 'Carnivore', 12.3, 9.00, 1902, 'North America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (2, 'Triceratops', 'Cretaceous', 'Herbivore', 9.0, 6.10, 1889, 'North America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (3, 'Velociraptor', 'Cretaceous', 'Carnivore', 2.0, 0.02, 1924, 'Asia')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (4, 'Stegosaurus', 'Jurassic', 'Herbivore', 9.0, 5.00, 1877, 'North America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (5, 'Brachiosaurus', 'Jurassic', 'Herbivore', 25.0, 50.00, 1903, 'North America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (6, 'Allosaurus', 'Jurassic', 'Carnivore', 8.5, 2.30, 1877, 'North America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (7, 'Spinosaurus', 'Cretaceous', 'Carnivore', 15.0, 7.40, 1915, 'Africa')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (8, 'Ankylosaurus', 'Cretaceous', 'Herbivore', 8.0, 6.00, 1908, 'North America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (9, 'Diplodocus', 'Jurassic', 'Herbivore', 27.0, 16.00, 1878, 'North America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (10, 'Pachycephalosaurus', 'Cretaceous', 'Herbivore', 4.5, 0.45, 1931, 'North America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (11, 'Iguanodon', 'Cretaceous', 'Herbivore', 10.0, 3.50, 1825, 'Europe')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (12, 'Megalosaurus', 'Jurassic', 'Carnivore', 9.0, 1.00, 1824, 'Europe')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (13, 'Compsognathus', 'Jurassic', 'Carnivore', 1.2, 0.003, 1859, 'Europe')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (14, 'Therizinosaurus', 'Cretaceous', 'Herbivore', 10.0, 5.00, 1954, 'Asia')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (15, 'Carnotaurus', 'Cretaceous', 'Carnivore', 8.0, 1.35, 1984, 'South America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (16, 'Argentinosaurus', 'Cretaceous', 'Herbivore', 35.0, 70.00, 1993, 'South America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (17, 'Giganotosaurus', 'Cretaceous', 'Carnivore', 13.0, 8.00, 1993, 'South America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (18, 'Plateosaurus', 'Triassic', 'Herbivore', 10.0, 4.00, 1834, 'Europe')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (19, 'Dilophosaurus', 'Jurassic', 'Carnivore', 7.0, 0.40, 1940, 'North America')",
+    "INSERT INTO Dinosaurs (id, name, period, diet, length_m, weight_tons, discovered_year, continent) VALUES (20, 'Parasaurolophus', 'Cretaceous', 'Herbivore', 10.0, 2.50, 1922, 'North America')"
+]

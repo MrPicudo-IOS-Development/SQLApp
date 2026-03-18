@@ -136,6 +136,18 @@ final class QueryEditorViewModel {
         executionMessage = nil
     }
 
+    /// Directly sets the displayed query result without executing any SQL.
+    ///
+    /// Used to show the pre-computed solution result when the user taps
+    /// "Show Result" in ``ExerciseDetailView``. Does not affect query history.
+    ///
+    /// - Parameter result: The ``QueryResult`` to display.
+    func setResult(_ result: QueryResult) {
+        queryResult = result
+        errorMessage = nil
+        executionMessage = nil
+    }
+
     /// Loads a previously executed query from history into the SQL editor.
     ///
     /// - Parameter item: The history item whose SQL text should be loaded into the editor.
@@ -164,10 +176,12 @@ final class QueryEditorViewModel {
     /// After pinning, the table is removed from ``availableTablesForPinning`` so it
     /// cannot be pinned a second time. The table picker sheet is dismissed automatically.
     ///
-    /// - Parameter tableName: The name of the table to pin.
-    func pinTable(_ tableName: String) async {
+    /// - Parameters:
+    ///   - tableName: The name of the table to pin.
+    ///   - rowLimit: The maximum number of rows to load for the pinned table preview.
+    func pinTable(_ tableName: String, rowLimit: Int) async {
         do {
-            let data = try await databaseService.getTableData(tableName, limit: 10)
+            let data = try await databaseService.getTableData(tableName, limit: rowLimit)
             let info = try await databaseService.getTableInfo(tableName)
             let pinned = PinnedTable(name: tableName, data: data, info: info)
             pinnedTables.append(pinned)
@@ -183,6 +197,32 @@ final class QueryEditorViewModel {
     /// - Parameter pinnedTable: The pinned table to remove.
     func unpinTable(_ pinnedTable: PinnedTable) {
         pinnedTables.removeAll { $0.id == pinnedTable.id }
+    }
+
+    // MARK: - Direct Execution
+
+    /// Executes a SELECT/PRAGMA query directly without updating the editor's UI state.
+    ///
+    /// Used for batch operations (e.g., loading tables from JSON) where the caller
+    /// manages its own progress and error display.
+    ///
+    /// - Parameter sql: The SQL query to execute.
+    /// - Returns: The ``QueryResult`` from the query.
+    @discardableResult
+    func executeDirect(_ sql: String) async throws -> QueryResult {
+        try await databaseService.executeQuery(sql)
+    }
+
+    /// Executes a non-query SQL statement directly without updating the editor's UI state.
+    ///
+    /// Used for batch operations (e.g., loading tables from JSON) where the caller
+    /// manages its own progress and error display.
+    ///
+    /// - Parameter sql: The SQL statement to execute.
+    /// - Returns: The number of rows affected.
+    @discardableResult
+    func executeNonQueryDirect(_ sql: String) async throws -> Int {
+        try await databaseService.executeNonQuery(sql)
     }
 
     // MARK: - Private

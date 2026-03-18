@@ -63,9 +63,12 @@ final class SQLTextEditorCoordinator: NSObject, UITextViewDelegate {
         defer { isUpdating = false }
 
         var currentText = textView.text ?? ""
-        var cursorOffset = textView.selectedRange.location
 
-        // Step 1: Auto-uppercase the last keyword if a boundary was typed
+        // Step 1: Auto-uppercase the last keyword if a boundary was typed.
+        // Capture the cursor position BEFORE any mutation so we can adjust
+        // it correctly if the replacement length ever changes.
+        let cursorOffset = textView.selectedRange.location
+
         if let lastChar = currentText.last,
            let scalar = lastChar.unicodeScalars.first,
            SQLSyntaxHighlighter.isBoundaryCharacter(scalar) {
@@ -77,16 +80,28 @@ final class SQLTextEditorCoordinator: NSObject, UITextViewDelegate {
             )
         }
 
-        // Step 2: Sync plain text to SwiftUI binding
+        // Step 2: Sync plain text to SwiftUI binding.
         text.wrappedValue = currentText
 
-        // Step 3: Re-highlight with cursor preservation
-        cursorOffset = min(cursorOffset, (currentText as NSString).length)
-        textView.attributedText = SQLSyntaxHighlighter.highlight(
-            currentText,
-            keywordColor: keywordColor
-        )
-        textView.selectedRange = NSRange(location: cursorOffset, length: 0)
+        // Step 3: Re-highlight by mutating the live NSTextStorage in-place.
+        //
+        // Assigning `textView.attributedText = ...` replaces the entire NSTextStorage
+        // and causes UIKit's UITextInputStringTokenizer to schedule an async
+        // cell-table rebuild. If selectedRange is set before that rebuild finishes,
+        // UIKit logs "The variant selector cell index number could not be found."
+        //
+        // Mutating textStorage via beginEditing/setAttributedString/endEditing keeps
+        // the tokenizer coherent — the layout manager notifies it synchronously —
+        // so no race occurs and no manual selectedRange restoration is needed for
+        // same-length replacements (which is always the case with ASCII-only keywords).
+        let highlighted = SQLSyntaxHighlighter.highlight(currentText, keywordColor: keywordColor)
+        textView.textStorage.beginEditing()
+        textView.textStorage.setAttributedString(highlighted)
+        textView.textStorage.endEditing()
+
+        // Clamp the cursor to the new length in case the string shrank.
+        let safeOffset = min(cursorOffset, textView.textStorage.length)
+        textView.selectedRange = NSRange(location: safeOffset, length: 0)
     }
 
     /// Called when the text view becomes first responder (gains keyboard focus).

@@ -27,7 +27,8 @@ final class SQLiteDatabaseService: DatabaseServiceProtocol, @unchecked Sendable 
     private nonisolated(unsafe) var db: OpaquePointer?
 
     /// Serial dispatch queue that serializes all SQLite operations for thread safety.
-    private let queue = DispatchQueue(label: "com.sqlapp.database", qos: .userInitiated)
+    /// The label includes the database filename for debugging clarity when multiple instances exist.
+    private let queue: DispatchQueue
 
     // MARK: - Initialization
 
@@ -36,8 +37,13 @@ final class SQLiteDatabaseService: DatabaseServiceProtocol, @unchecked Sendable 
     /// The database file is placed in the app's Documents directory. If the file
     /// does not exist, SQLite creates it automatically.
     ///
-    /// - Parameter databaseName: The filename for the SQLite database. Defaults to `"SQLApp.sqlite"`.
-    nonisolated init(databaseName: String = "SQLApp.sqlite") {
+    /// - Parameters:
+    ///   - databaseName: The filename for the SQLite database. Defaults to `"user_database.sqlite"`.
+    ///   - enableHistory: Whether to create the internal `_query_history` table.
+    ///     Pass `false` for databases that don't need query history (e.g. the app exercise database).
+    nonisolated init(databaseName: String = "user_database.sqlite", enableHistory: Bool = true) {
+        self.queue = DispatchQueue(label: "com.sqlapp.database.\(databaseName)", qos: .userInitiated)
+
         let documentsURL = FileManager.default.urls(
             for: .documentDirectory,
             in: .userDomainMask
@@ -50,8 +56,8 @@ final class SQLiteDatabaseService: DatabaseServiceProtocol, @unchecked Sendable 
             db = nil
         }
 
-        // Create the internal history table if it does not exist yet.
-        if let db {
+        // Create the internal history table only for user-facing databases.
+        if enableHistory, let db {
             let createHistorySQL = """
                 CREATE TABLE IF NOT EXISTS _query_history (
                     id TEXT PRIMARY KEY,

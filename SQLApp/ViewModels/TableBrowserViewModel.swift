@@ -21,6 +21,9 @@ final class TableBrowserViewModel {
     /// The list of user-created table names currently in the database.
     var tables: [String] = []
 
+    /// Summary information (name, column count, row count) for each user-created table.
+    var tableSummaries: [TableSummary] = []
+
     /// Whether the table list is currently being loaded from the database.
     var isLoading: Bool = false
 
@@ -58,6 +61,36 @@ final class TableBrowserViewModel {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    /// Loads summary information (column count and row count) for every table in ``tables``.
+    ///
+    /// Should be called after ``loadTables()`` so that the table names are available.
+    /// For each table, uses `getTableInfo` for the column count and a `SELECT COUNT(*)`
+    /// query for the row count.
+    func loadTableSummaries() async {
+        var summaries: [TableSummary] = []
+        for tableName in tables {
+            do {
+                let info = try await databaseService.getTableInfo(tableName)
+                let countResult = try await databaseService.executeQuery("SELECT COUNT(*) FROM \(tableName)")
+                let rowCount = Int(countResult.rows.first?.first ?? "0") ?? 0
+                summaries.append(TableSummary(
+                    id: tableName,
+                    name: tableName,
+                    columnCount: info.columns.count,
+                    rowCount: rowCount
+                ))
+            } catch {
+                summaries.append(TableSummary(
+                    id: tableName,
+                    name: tableName,
+                    columnCount: 0,
+                    rowCount: 0
+                ))
+            }
+        }
+        tableSummaries = summaries
     }
 
     /// Retrieves the schema information for a specific table.

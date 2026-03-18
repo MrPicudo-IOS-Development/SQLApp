@@ -25,6 +25,12 @@ final class SettingsViewModel {
     /// The `UserDefaults` key used to store the pinned table display mode.
     private static let pinnedDisplayModeKey = "pinnedTableDisplayMode"
 
+    /// The `UserDefaults` key used to store the maximum number of rows shown for pinned tables.
+    private static let pinnedRowLimitKey = "pinnedTableRowLimit"
+
+    /// The available options for the maximum number of rows displayed in pinned tables.
+    static let rowLimitOptions = [5, 10, 20, 50, 100, 200]
+
     // MARK: - State
 
     /// The keyword highlight color as a SwiftUI `Color`.
@@ -68,6 +74,16 @@ final class SettingsViewModel {
         }
     }
 
+    /// The maximum number of rows displayed for each pinned table when in data mode.
+    ///
+    /// Persisted immediately to `UserDefaults` on every change via the `didSet` observer.
+    /// Defaults to `10` when no value has been saved previously.
+    var pinnedTableRowLimit: Int {
+        didSet {
+            UserDefaults.standard.set(pinnedTableRowLimit, forKey: Self.pinnedRowLimitKey)
+        }
+    }
+
     // MARK: - Initialization
 
     /// Creates a new settings ViewModel, loading the persisted keyword color
@@ -80,5 +96,8 @@ final class SettingsViewModel {
 
         let modeRaw = UserDefaults.standard.string(forKey: Self.pinnedDisplayModeKey) ?? ""
         self.pinnedTableDisplayMode = PinnedTableDisplayMode(rawValue: modeRaw) ?? .data
+
+        let savedLimit = UserDefaults.standard.integer(forKey: Self.pinnedRowLimitKey)
+        self.pinnedTableRowLimit = savedLimit > 0 ? savedLimit : 10
     }
 }

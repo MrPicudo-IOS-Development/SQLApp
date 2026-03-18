@@ -36,8 +36,9 @@ struct SQLTextEditorView: UIViewRepresentable {
 
     /// Creates the `UITextView` with initial configuration matching the app's editor style.
     ///
-    /// Configures the text view with a monospaced font, light gray background,
-    /// and disabled autocorrection/autocapitalization to avoid interfering with SQL input.
+    /// Configures the text view with a monospaced font, transparent background
+    /// (so the SwiftUI background color shows through), and disabled
+    /// autocorrection/autocapitalization to avoid interfering with SQL input.
     ///
     /// - Parameter context: The representable context containing the coordinator.
     /// - Returns: A configured `UITextView` instance.
@@ -45,7 +46,7 @@ struct SQLTextEditorView: UIViewRepresentable {
         let textView = UITextView()
         textView.delegate = context.coordinator
         textView.font = SQLSyntaxHighlighter.baseFont
-        textView.backgroundColor = .systemGray6
+        textView.backgroundColor = .clear
         textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
         textView.autocapitalizationType = .none
         textView.autocorrectionType = .no
@@ -54,10 +55,10 @@ struct SQLTextEditorView: UIViewRepresentable {
         textView.smartDashesType = .no
         textView.keyboardType = .asciiCapable
 
-        textView.attributedText = SQLSyntaxHighlighter.highlight(
-            text,
-            keywordColor: keywordColor
-        )
+        let highlighted = SQLSyntaxHighlighter.highlight(text, keywordColor: keywordColor)
+        textView.textStorage.beginEditing()
+        textView.textStorage.setAttributedString(highlighted)
+        textView.textStorage.endEditing()
 
         return textView
     }
@@ -81,12 +82,14 @@ struct SQLTextEditorView: UIViewRepresentable {
         // re-triggering on every SwiftUI re-render.
         if textView.text != text {
             coordinator.isUpdating = true
-            let maxLocation = (text as NSString).length
-            textView.attributedText = SQLSyntaxHighlighter.highlight(
-                text,
-                keywordColor: keywordColor
-            )
-            textView.selectedRange = NSRange(location: maxLocation, length: 0)
+            // Mutate textStorage in-place to keep UIKit's tokenizer coherent.
+            // See SQLTextEditorCoordinator.textViewDidChange for the full explanation.
+            let highlighted = SQLSyntaxHighlighter.highlight(text, keywordColor: keywordColor)
+            textView.textStorage.beginEditing()
+            textView.textStorage.setAttributedString(highlighted)
+            textView.textStorage.endEditing()
+            let safeLocation = min(text.utf16.count, textView.textStorage.length)
+            textView.selectedRange = NSRange(location: safeLocation, length: 0)
             coordinator.isUpdating = false
         }
     }

@@ -53,6 +53,7 @@ struct QueryEditorView: View {
                 controlBar
                 resultsSection
             }
+            .background(Color(.systemGroupedBackground))
             .contentShape(Rectangle())
             .onTapGesture {
                 dismissKeyboard()
@@ -103,7 +104,8 @@ struct QueryEditorView: View {
             keywordColor: settingsViewModel.keywordUIColor
         )
         .frame(minHeight: 120, maxHeight: 200)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(Color(.systemFill))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(alignment: .topTrailing) {
             if showClearButton {
                 Button {
@@ -361,7 +363,7 @@ struct QueryEditorView: View {
             Label("Pin Table", systemImage: "pin")
         }
         .buttonStyle(.bordered)
-        .controlSize(.small)
+        .controlSize(.regular)
         .padding(.top, 8)
     }
 
@@ -386,7 +388,7 @@ struct QueryEditorView: View {
                 } else {
                     List(viewModel.availableTablesForPinning, id: \.self) { tableName in
                         Button {
-                            Task { await viewModel.pinTable(tableName) }
+                            Task { await viewModel.pinTable(tableName, rowLimit: settingsViewModel.pinnedTableRowLimit) }
                         } label: {
                             Label {
                                 Text(tableName)

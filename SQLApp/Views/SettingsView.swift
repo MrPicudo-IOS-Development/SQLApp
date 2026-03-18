@@ -29,10 +29,21 @@ struct SettingsView: View {
                             Text(mode.rawValue).tag(mode)
                         }
                     }
+                    if viewModel.pinnedTableDisplayMode == .data {
+                        Picker("Row Limit", selection: $viewModel.pinnedTableRowLimit) {
+                            ForEach(SettingsViewModel.rowLimitOptions, id: \.self) { limit in
+                                Text("\(limit) rows").tag(limit)
+                            }
+                        }
+                    }
                 } header: {
                     Text("Pinned Tables")
                 } footer: {
-                    Text("Choose whether pinned tables in the SQL Editor show row data or column structure.")
+                    if viewModel.pinnedTableDisplayMode == .data {
+                        Text("Choose how pinned tables are displayed and the maximum number of rows shown for each table.")
+                    } else {
+                        Text("Choose whether pinned tables in the SQL Editor show row data or column structure.")
+                    }
                 }
                 
                 Section {

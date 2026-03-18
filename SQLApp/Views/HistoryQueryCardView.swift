@@ -9,7 +9,7 @@ import SwiftUI
 ///
 /// Shows the first ~3 lines of the SQL text with syntax-highlighted keywords
 /// (using ``SQLSyntaxHighlighter``).
-/// Designed to be used inside a `NavigationLink` within ``HistoryView``.
+/// Designed to be used inside a `NavigationLink` within ``QueryHistoryListView``.
 struct HistoryQueryCardView: View {
 
     /// The history item whose SQL is previewed in this card.
