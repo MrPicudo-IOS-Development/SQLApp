@@ -14,64 +14,29 @@ import SwiftUI
 /// All exercise queries run against `app_database.sqlite`, which is completely
 /// isolated from the user's sandbox database.
 struct ExercisesView: View {
-
+    
     /// Navigation destinations within the Exercises tab.
     enum Destination: Hashable {
         case exerciseDetail(ExerciseBlock)
         case blockResults(ExerciseBlock, [ExerciseAttemptRecord])
     }
-
+    
     /// The ViewModel for the SQL editor, connected to the app database.
     @Bindable var queryEditorViewModel: QueryEditorViewModel
-
+    
     /// The settings ViewModel providing the keyword highlight color.
     let settingsViewModel: SettingsViewModel
-
+    
     /// Manages per-block table seeding state and expected results.
     @Bindable var exercisesViewModel: ExercisesViewModel
-
+    
     // MARK: - Exercise Blocks
-
-    /// The exercise blocks to display.
-    private let exerciseBlocks: [ExerciseBlock] = [
-        ExerciseBlock(
-            imageName: "lizard.circle",
-            sqlKeywords: ["SELECT", "FROM", "WHERE", "ORDER BY"],
-            summary: "Query and filter prehistoric creatures by period, diet, and size.",
-            tableNames: ["Dinosaurs"],
-            jsonFileName: "dinosaursInfo",
-            exercises: [
-                Exercise(
-                    title: "Dinosaurs 1",
-                    instructions: "Write a query that returns only the id column from the Dinosaurs table.",
-                    solutionSQL: "SELECT id FROM Dinosaurs"
-                ),
-                Exercise(
-                    title: "Dinosaurs 2",
-                    instructions: "Write a query that returns only the name column from the Dinosaurs table.",
-                    solutionSQL: "SELECT name FROM Dinosaurs"
-                ),
-                Exercise(
-                    title: "Dinosaurs 3",
-                    instructions: "Write a query that returns only the period column from the Dinosaurs table.",
-                    solutionSQL: "SELECT period FROM Dinosaurs"
-                ),
-                Exercise(
-                    title: "Dinosaurs 4",
-                    instructions: "Write a query that returns only the diet column from the Dinosaurs table.",
-                    solutionSQL: "SELECT diet FROM Dinosaurs"
-                ),
-                Exercise(
-                    title: "Dinosaurs 5",
-                    instructions: "Write a query that returns only the length_m column from the Dinosaurs table.",
-                    solutionSQL: "SELECT length_m FROM Dinosaurs"
-                ),
-            ]
-        ),
-    ]
-
+    
+    /// All exercise blocks, sourced from the centralized ``ExerciseCatalog``.
+    private let exerciseBlocks = ExerciseCatalog.exerciseBlocks
+    
     @State private var navigationPath = NavigationPath()
-
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ScrollView {
@@ -112,15 +77,15 @@ struct ExercisesView: View {
             }
         }
     }
-
+    
     // MARK: - Card Builder
-
+    
     @ViewBuilder
     private func blockCard(for block: ExerciseBlock) -> some View {
         let seeding = exercisesViewModel.isSeeding(block)
         let seeded = exercisesViewModel.isSeeded(block)
         let error = exercisesViewModel.seedingError(for: block)
-
+        
         if seeded && error == nil {
             // Tables ready — navigation allowed
             NavigationLink(value: Destination.exerciseDetail(block)) {
@@ -148,9 +113,9 @@ struct ExercisesView: View {
             .allowsHitTesting(false)
         }
     }
-
+    
     // MARK: - Overlays
-
+    
     private var seedingOverlay: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
@@ -164,7 +129,7 @@ struct ExercisesView: View {
             }
         }
     }
-
+    
     private func errorOverlay(message: String) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)

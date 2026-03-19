@@ -18,7 +18,7 @@ struct ExerciseBlock: Identifiable, Hashable {
 
     let id = UUID()
 
-    /// Name of the SF Symbol displayed on the card (square, small).
+    /// Name of the image asset displayed on the card (square, small).
     let imageName: String
 
     /// SQL keywords introduced for the first time in this block.

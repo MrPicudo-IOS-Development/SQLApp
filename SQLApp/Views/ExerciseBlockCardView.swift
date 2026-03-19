@@ -37,12 +37,10 @@ struct ExerciseBlockCardView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             // Square image on the left, with score arc badge when completed
-            Image(systemName: block.imageName)
+            Image(block.imageName)
                 .resizable()
-                .scaledToFit()
-                .foregroundStyle(accentColor)
+                .scaledToFill()
                 .frame(width: 56, height: 56)
-                .background(accentColor.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .overlay(alignment: .bottomTrailing) {
                     if let score = bestScore {
