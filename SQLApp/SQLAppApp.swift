@@ -35,7 +35,8 @@ struct SQLAppApp: App {
         )
         self.appDatabaseService = SQLiteDatabaseService(
             databaseName: "app_database.sqlite",
-            enableHistory: false
+            enableHistory: false,
+            enableScores: true
         )
     }
 

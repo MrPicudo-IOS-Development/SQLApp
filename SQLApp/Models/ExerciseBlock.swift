@@ -40,7 +40,13 @@ struct ExerciseBlock: Identifiable, Hashable {
 
     /// Display title for the block (derived from the table names).
     var title: String {
-        tableNames.joined(separator: ", ")
+        imageName
+    }
+
+    /// A stable identifier suitable for persistent storage (scores, seeding flags, etc.).
+    /// Unlike ``id`` (a runtime `UUID`), this value is deterministic across app launches.
+    var stableID: String {
+        jsonFileName
     }
 
     // MARK: - Hashable

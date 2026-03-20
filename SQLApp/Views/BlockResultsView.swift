@@ -8,7 +8,7 @@ import SwiftUI
 /// Summary screen shown after the user completes all exercises in a block.
 ///
 /// Displays:
-/// - A circular score ring with the percentage of correct answers.
+/// - A row of 5 stars, one filled per correct exercise.
 /// - A row for each exercise showing its title, the query used, and a
 ///   correct / incorrect indicator.
 ///
@@ -30,20 +30,6 @@ struct BlockResultsView: View {
         attempts.filter(\.wasCorrect).count
     }
 
-    private var score: Int {
-        guard !attempts.isEmpty else { return 0 }
-        return Int((Double(correctCount) / Double(attempts.count)) * 100)
-    }
-
-    private var scoreColor: Color {
-        switch score {
-        case 100:       return .green
-        case 70...:     return accentColor
-        case 40...:     return .orange
-        default:        return .red
-        }
-    }
-
     // MARK: - Body
 
     var body: some View {
@@ -52,7 +38,7 @@ struct BlockResultsView: View {
 
             ScrollView {
                 VStack(spacing: 24) {
-                    scoreRing
+                    starsSection
                     attemptsList
                     dismissHint
                 }
@@ -68,37 +54,16 @@ struct BlockResultsView: View {
         .onTapGesture { onDismiss() }
     }
 
-    // MARK: - Score Ring
+    // MARK: - Stars Section
 
-    private var scoreRing: some View {
+    private var starsSection: some View {
         VStack(spacing: 12) {
-            ZStack {
-                // Track
-                Circle()
-                    .stroke(scoreColor.opacity(0.15), lineWidth: 14)
-                    .frame(width: 140, height: 140)
+            StarsView(filledCount: correctCount, totalCount: 5, size: 40)
+                .padding(.top, 8)
 
-                // Progress arc
-                Circle()
-                    .trim(from: 0, to: CGFloat(score) / 100)
-                    .stroke(
-                        scoreColor,
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .frame(width: 140, height: 140)
-                    .animation(.easeOut(duration: 0.8), value: score)
-
-                // Score label
-                VStack(spacing: 2) {
-                    Text("\(score)%")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(scoreColor)
-                    Text("\(correctCount)/\(attempts.count) correct")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            Text("\(correctCount)/\(attempts.count) correct")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             Text(scoreMessage)
                 .font(.headline)
@@ -109,10 +74,10 @@ struct BlockResultsView: View {
     }
 
     private var scoreMessage: String {
-        switch score {
-        case 100:   return "Perfect score! 🎉"
-        case 80...: return "Great work!"
-        case 60...: return "Good effort — keep practicing."
+        switch correctCount {
+        case 5:     return "Perfect score!"
+        case 4:     return "Great work!"
+        case 3:     return "Good effort — keep practicing."
         default:    return "Keep at it — you'll get there."
         }
     }
@@ -151,7 +116,6 @@ struct BlockResultsView: View {
                 Text(record.queryUsed)
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
             }
 
             Spacer()

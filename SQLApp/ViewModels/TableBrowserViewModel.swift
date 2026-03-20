@@ -35,6 +35,10 @@ final class TableBrowserViewModel {
     /// The database service used to query table metadata and data.
     private let databaseService: any DatabaseServiceProtocol
 
+    /// Exposes the database service so that child ViewModels (e.g. ``TableDetailViewModel``)
+    /// can be created with the same dependency.
+    var databaseServiceForDetail: any DatabaseServiceProtocol { databaseService }
+
     // MARK: - Initialization
 
     /// Creates a new ViewModel with the given database service.

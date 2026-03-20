@@ -50,8 +50,10 @@ struct DatabaseView: View {
                 switch destination {
                 case .table(let tableName):
                     TableDetailView(
-                        tableName: tableName,
-                        viewModel: tableBrowserViewModel,
+                        viewModel: TableDetailViewModel(
+                            tableName: tableName,
+                            databaseService: tableBrowserViewModel.databaseServiceForDetail
+                        ),
                         settingsViewModel: settingsViewModel
                     )
                 case .queryHistory:

@@ -8,7 +8,7 @@ import Foundation
 /// A non-instantiable catalog that holds every ``ExerciseBlock`` in the app.
 ///
 /// Using a caseless `enum` prevents accidental instantiation while providing
-/// a clear namespace for the exercise data. Add new blocks to the ``all``
+/// a clear namespace for the exercise data. Add new blocks to the ``exerciseBlocks``
 /// array as the app grows — the rest of the architecture (seeding, navigation,
 /// scoring) picks them up automatically.
 enum ExerciseCatalog {
@@ -17,7 +17,7 @@ enum ExerciseCatalog {
     static let exerciseBlocks: [ExerciseBlock] = [
         // MARK: - Block 1 · Dinosaurs
         ExerciseBlock(
-            imageName: "E01Dinosaurs",
+            imageName: "Dinosaurs",
             sqlKeywords: ["SELECT", "FROM", "WHERE", "ORDER BY"],
             summary: "Query and filter prehistoric creatures by period, diet, and size.",
             tableNames: ["Dinosaurs"],
@@ -53,7 +53,7 @@ enum ExerciseCatalog {
         
         // MARK: - Block 2 · Space missions
         ExerciseBlock(
-            imageName: "E02Space",
+            imageName: "Space",
             sqlKeywords: ["AND", "OR", "NOT", "IN", "BETWEEN", "LIKE", "IS NULL", "IS NOT NULL"],
             summary: "Filter space missions using logical operators, ranges, patterns, and null checks.",
             tableNames: ["SpaceMissions"],
@@ -89,8 +89,8 @@ enum ExerciseCatalog {
         
         // MARK: - Block 3 · Movies and cinema
         ExerciseBlock(
-            imageName: "E03Movies",
-            sqlKeywords: ["COUNT", "SUM", "AVG", "MIN", "MAX", "GROUP BY", "HAVING", "ROUND"],
+            imageName: "Movies",
+            sqlKeywords: ["COUNT", "SUM", "AVG", "MIN", "MAX", "GROUP BY", "HAVING"],
             summary: "Aggregate and summarize film data by genre, country, director, and box office performance.",
             tableNames: ["Movies"],
             jsonFileName: "movies",
@@ -125,7 +125,7 @@ enum ExerciseCatalog {
         
         // MARK: - Block 4 · Videogames
         ExerciseBlock(
-            imageName: "E04Videogames",
+            imageName: "Videogames",
             sqlKeywords: ["INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "ON"],
             summary: "Combine studios, games, and platforms to explore relationships across the gaming industry.",
             tableNames: ["Studios", "VideoGames", "GamePlatforms"],
@@ -161,8 +161,8 @@ enum ExerciseCatalog {
         
         // MARK: - Block 5 · Olympics
         ExerciseBlock(
-            imageName: "E05Olympics",
-            sqlKeywords: ["Subquery", "EXISTS", "NOT EXISTS", "ANY", "ALL", "FULL OUTER JOIN", "CROSS JOIN"],
+            imageName: "Olympics",
+            sqlKeywords: ["EXISTS", "NOT EXISTS", "ANY", "ALL", "FULL OUTER JOIN", "CROSS JOIN"],
             summary: "Use subqueries and advanced joins to uncover patterns across athletes, competitions, and medals.",
             tableNames: ["Athletes", "Competitions", "Medals"],
             jsonFileName: "olympics",
@@ -190,7 +190,23 @@ enum ExerciseCatalog {
                 Exercise(
                     title: "Gold Dominance",
                     instructions: "Write a query that returns the full_name, country, and sport of athletes whose total number of gold medals is greater than or equal to ALL other athletes' gold medal counts. Use a subquery with ALL to compare. Consider only medals where medal_type is 'Gold'.",
-                    solutionSQL: "SELECT a.full_name, a.country, a.sport FROM Athletes a INNER JOIN Medals m ON a.id = m.id_athlete WHERE m.medal_type = 'Gold' GROUP BY a.id, a.full_name, a.country, a.sport HAVING COUNT(*) >= ALL (SELECT COUNT(*) FROM Medals WHERE medal_type = 'Gold' GROUP BY id_athlete)"
+                    solutionSQL:
+                        """
+                        SELECT a.full_name, a.country, a.sport
+                        FROM Athletes a
+                        INNER JOIN Medals m ON a.id = m.id_athlete
+                        WHERE m.medal_type = 'Gold'
+                        GROUP BY a.id, a.full_name, a.country, a.sport
+                        HAVING COUNT(*) >= (
+                            SELECT MAX(gold_count)
+                            FROM (
+                                SELECT COUNT(*) AS gold_count
+                                    FROM Medals
+                                    WHERE medal_type = 'Gold'
+                                    GROUP BY id_athlete
+                            )
+                        )
+                        """
                 ),
             ]
         )

@@ -86,7 +86,7 @@ struct ContentView: View {
                 )
             }
 
-            Tab("Exercises", systemImage: "book") {
+            Tab("Practice", systemImage: "book") {
                 ExercisesView(
                     queryEditorViewModel: exercisesEditorVM,
                     settingsViewModel: settingsVM,
@@ -104,6 +104,6 @@ struct ContentView: View {
 #Preview {
     ContentView(
         userDatabaseService: SQLiteDatabaseService(databaseName: "Preview.sqlite"),
-        appDatabaseService: SQLiteDatabaseService(databaseName: "PreviewApp.sqlite", enableHistory: false)
+        appDatabaseService: SQLiteDatabaseService(databaseName: "PreviewApp.sqlite", enableHistory: false, enableScores: true)
     )
 }

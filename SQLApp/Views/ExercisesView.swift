@@ -49,15 +49,16 @@ struct ExercisesView: View {
                 .padding(.bottom, 16)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Exercises")
+            .navigationTitle("Query practice")
             .navigationDestination(for: Destination.self) { destination in
                 switch destination {
                 case .exerciseDetail(let block):
                     ExerciseDetailView(
-                        block: block,
-                        queryEditorViewModel: queryEditorViewModel,
-                        settingsViewModel: settingsViewModel,
-                        exercisesViewModel: exercisesViewModel
+                        viewModel: exercisesViewModel.detailViewModel(
+                            for: block,
+                            queryEditorViewModel: queryEditorViewModel
+                        ),
+                        settingsViewModel: settingsViewModel
                     )
                 case .blockResults(let block, let attempts):
                     BlockResultsView(
@@ -69,8 +70,8 @@ struct ExercisesView: View {
                 }
             }
             .task {
-                // Kick off seeding for all blocks when the tab is first visited.
-                // ExercisesViewModel is idempotent — already-seeded blocks are skipped.
+                // Load persisted scores first, then seed tables.
+                await exercisesViewModel.loadScoresIfNeeded()
                 for block in exerciseBlocks {
                     await exercisesViewModel.seedTablesIfNeeded(for: block)
                 }
@@ -92,7 +93,7 @@ struct ExercisesView: View {
                 ExerciseBlockCardView(
                     block: block,
                     accentColor: settingsViewModel.keywordColor,
-                    bestScore: exercisesViewModel.bestScore(for: block)
+                    bestStars: exercisesViewModel.bestStars(for: block)
                 )
             }
             .buttonStyle(.plain)
@@ -101,7 +102,7 @@ struct ExercisesView: View {
             ExerciseBlockCardView(
                 block: block,
                 accentColor: settingsViewModel.keywordColor,
-                bestScore: exercisesViewModel.bestScore(for: block)
+                bestStars: exercisesViewModel.bestStars(for: block)
             )
             .overlay {
                 if seeding {

@@ -13,27 +13,14 @@ import SwiftUI
 /// - **Data**: A scrollable grid of the table's row data using ``ResultsTableView``.
 ///
 /// Table details are loaded lazily when the view first appears via `.task`.
-/// The view receives its data through ``TableBrowserViewModel``, which
-/// delegates to the database service.
+/// Business logic and data loading are handled by ``TableDetailViewModel``.
 struct TableDetailView: View {
 
-    /// The name of the table whose details are displayed.
-    let tableName: String
-
-    /// The ViewModel used to fetch table schema and data from the database.
-    let viewModel: TableBrowserViewModel
+    /// The ViewModel that manages table schema and data loading.
+    @Bindable var viewModel: TableDetailViewModel
 
     /// The settings ViewModel providing the accent color for column headers.
     let settingsViewModel: SettingsViewModel
-
-    /// The table's column definitions, loaded asynchronously on appearance.
-    @State private var tableInfo: TableInfo?
-
-    /// The table's row data, loaded asynchronously on appearance.
-    @State private var tableData: QueryResult?
-
-    /// An error message if loading the table details failed.
-    @State private var errorMessage: String?
 
     /// The currently selected detail tab (structure or data).
     @State private var selectedTab: DetailTab = .structure
@@ -59,9 +46,9 @@ struct TableDetailView: View {
             }
             .frame(maxHeight: .infinity)
         }
-        .navigationTitle(tableName)
+        .navigationTitle(viewModel.tableName)
         .task {
-            await loadDetails()
+            await viewModel.loadDetails()
         }
     }
 
@@ -74,13 +61,13 @@ struct TableDetailView: View {
     /// and default value (blue text).
     private var structureView: some View {
         Group {
-            if let error = errorMessage {
+            if let error = viewModel.errorMessage {
                 ContentUnavailableView(
                     "Error",
                     systemImage: "exclamationmark.triangle",
                     description: Text(error)
                 )
-            } else if let info = tableInfo {
+            } else if let info = viewModel.tableInfo {
                 List(info.columns) { column in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
@@ -122,7 +109,7 @@ struct TableDetailView: View {
     /// Displays the table's row data using the reusable ``ResultsTableView``.
     private var dataView: some View {
         Group {
-            if let data = tableData {
+            if let data = viewModel.tableData {
                 ResultsTableView(result: data, headerColor: settingsViewModel.keywordColor)
             } else {
                 ProgressView()
@@ -130,18 +117,4 @@ struct TableDetailView: View {
         }
     }
 
-    // MARK: - Data Loading
-
-    /// Loads both the table schema and row data from the database.
-    ///
-    /// Called once when the view first appears. On failure, sets ``errorMessage``
-    /// to display an error state in the structure view.
-    private func loadDetails() async {
-        do {
-            tableInfo = try await viewModel.getTableInfo(tableName)
-            tableData = try await viewModel.getTableData(tableName)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
 }

@@ -64,6 +64,25 @@ protocol DatabaseServiceProtocol: Sendable {
     /// - Throws: ``DatabaseError`` if the underlying query fails.
     func getTableData(_ tableName: String, limit: Int) async throws -> QueryResult
 
+    // MARK: - Exercise Score Persistence
+
+    /// Saves or updates the best star count for a given exercise block.
+    ///
+    /// Uses `INSERT OR REPLACE` semantics: if a row with the same `blockID`
+    /// already exists it is updated; otherwise a new row is created.
+    ///
+    /// - Parameters:
+    ///   - blockID: The stable identifier of the exercise block (e.g. its `jsonFileName`).
+    ///   - stars: The best star count (0–5) achieved by the user.
+    /// - Throws: ``DatabaseError`` if the write fails.
+    func saveScore(blockID: String, stars: Int) async throws
+
+    /// Loads all persisted exercise scores as a dictionary keyed by block stable ID.
+    ///
+    /// - Returns: A `[String: Int]` mapping each block's stable ID to its best star count.
+    /// - Throws: ``DatabaseError`` if the query fails.
+    func loadScores() async throws -> [String: Int]
+
     // MARK: - Query History Persistence
 
     /// Saves a query history item to the persistent `_query_history` table.

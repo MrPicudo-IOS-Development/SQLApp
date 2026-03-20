@@ -16,7 +16,7 @@ import Foundation
 /// - Expose per-block loading state so ``ExercisesView`` can block navigation
 ///   while seeding is in progress.
 /// - Provide table data snapshots for the read-only preview inside exercises.
-/// - Persist and expose the best score (0–100) achieved per block across sessions.
+/// - Persist and expose the best star count (0–5) achieved per block across sessions.
 ///
 /// A single shared instance is created at app startup and injected into
 /// ``ExercisesView`` and ``ExerciseDetailView``.
@@ -46,13 +46,25 @@ final class ExercisesViewModel {
     /// Table data snapshots for read-only display inside exercises, keyed by table name.
     private(set) var tablePreviewData: [String: QueryResult] = [:]
 
+    /// Table structure (column definitions) for exercises, keyed by table name.
+    private(set) var tableStructureData: [String: TableInfo] = [:]
+
+    // MARK: - In-Progress ViewModels
+
+    /// Cached ``ExerciseDetailViewModel`` instances keyed by block ID.
+    /// Preserves in-progress exercise state when the user navigates back
+    /// to the block list without finishing all exercises.
+    private var cachedDetailViewModels: [UUID: ExerciseDetailViewModel] = [:]
+
     // MARK: - Block Scores
 
-    /// Best score (0–100) ever achieved for each block, keyed by block ID string.
-    /// Loaded from and persisted to `UserDefaults`.
+    /// Best star count (0–5) ever achieved for each block, keyed by block `stableID`.
+    /// Each star represents one correct exercise out of 5.
+    /// Loaded from and persisted to the `_exercise_scores` table in `app_database`.
     private(set) var bestScores: [String: Int] = [:]
 
-    private static let bestScoresKey = "exerciseBlockBestScores"
+    /// Whether scores have been loaded from the database at least once.
+    private var scoresLoaded = false
 
     // MARK: - Dependencies
 
@@ -62,7 +74,17 @@ final class ExercisesViewModel {
 
     init(databaseService: any DatabaseServiceProtocol) {
         self.databaseService = databaseService
-        self.bestScores = (UserDefaults.standard.dictionary(forKey: Self.bestScoresKey) as? [String: Int]) ?? [:]
+    }
+
+    /// Loads persisted scores from the database. Called once when the Exercises tab appears.
+    func loadScoresIfNeeded() async {
+        guard !scoresLoaded else { return }
+        do {
+            bestScores = try await databaseService.loadScores()
+        } catch {
+            // Non-fatal: scores default to empty, user can still play.
+        }
+        scoresLoaded = true
     }
 
     // MARK: - Public Interface — Seeding
@@ -92,10 +114,18 @@ final class ExercisesViewModel {
         tablePreviewData[tableName]
     }
 
-    /// Ensures all tables required by `block` exist in `app_database`, then
-    /// pre-computes expected results for every exercise and loads table previews.
+    /// Returns the cached table structure for the given table name, if available.
+    func structureInfo(for tableName: String) -> TableInfo? {
+        tableStructureData[tableName]
+    }
+
+    /// Ensures all tables required by `block` exist in `app_database` and contain
+    /// data, then pre-computes expected results for every exercise and loads table
+    /// previews.
     ///
     /// Safe to call multiple times — already-seeded blocks are skipped instantly.
+    /// If a required table exists but is empty (e.g. interrupted seeding), it is
+    /// dropped and the JSON is re-executed.
     func seedTablesIfNeeded(for block: ExerciseBlock) async {
         guard !seededBlockIDs.contains(block.id),
               !seedingBlockIDs.contains(block.id) else { return }
@@ -104,12 +134,13 @@ final class ExercisesViewModel {
         seedingErrors.removeValue(forKey: block.id)
 
         do {
-            let missingTables = try await findMissingTables(for: block)
-            if !missingTables.isEmpty {
+            let needsSeeding = try await tablesNeedSeeding(for: block)
+            if needsSeeding {
                 try await runJSON(for: block)
             }
             await computeExpectedResults(for: block)
             await loadTablePreviews(for: block)
+            await loadTableStructures(for: block)
             seededBlockIDs.insert(block.id)
         } catch {
             seedingErrors[block.id] = error.localizedDescription
@@ -134,41 +165,86 @@ final class ExercisesViewModel {
 
     // MARK: - Public Interface — Scores
 
-    /// Returns the best score (0–100) ever recorded for the given block, or `nil`
+    /// Returns the best star count (0–5) ever recorded for the given block, or `nil`
     /// if the block has never been completed.
-    func bestScore(for block: ExerciseBlock) -> Int? {
-        bestScores[block.id.uuidString]
+    func bestStars(for block: ExerciseBlock) -> Int? {
+        bestScores[block.stableID]
     }
 
     /// Records the result of a completed block attempt.
     ///
-    /// Computes the score as the percentage of correct answers, then updates
-    /// ``bestScores`` if this attempt beats the previous best.
+    /// Counts the number of correct answers (0–5) as the star count, then updates
+    /// ``bestScores`` only if this attempt beats the previous best (or if there was
+    /// no previous score). Also clears the cached ViewModel for the block so
+    /// that subsequent entries start fresh.
     ///
     /// - Parameters:
     ///   - block: The block that was just completed.
     ///   - attempts: The ordered list of attempt records, one per exercise.
     func recordCompletion(for block: ExerciseBlock, attempts: [ExerciseAttemptRecord]) {
         let correct = attempts.filter(\.wasCorrect).count
-        let total = attempts.count
-        guard total > 0 else { return }
+        guard !attempts.isEmpty else { return }
 
-        let score = Int((Double(correct) / Double(total)) * 100)
-        let key = block.id.uuidString
+        let key = block.stableID
         let previous = bestScores[key] ?? -1
 
-        if score > previous {
-            bestScores[key] = score
-            UserDefaults.standard.set(bestScores, forKey: Self.bestScoresKey)
+        if correct > previous {
+            bestScores[key] = correct
+            Task {
+                try? await databaseService.saveScore(blockID: key, stars: correct)
+            }
         }
+
+        // Clear cached ViewModel so the next entry starts fresh.
+        cachedDetailViewModels.removeValue(forKey: block.id)
+    }
+
+    /// Returns a cached ``ExerciseDetailViewModel`` for the given block,
+    /// creating one if it doesn't exist yet. This preserves in-progress
+    /// exercise state when the user navigates away and back.
+    func detailViewModel(
+        for block: ExerciseBlock,
+        queryEditorViewModel: QueryEditorViewModel
+    ) -> ExerciseDetailViewModel {
+        if let existing = cachedDetailViewModels[block.id] {
+            return existing
+        }
+        let vm = ExerciseDetailViewModel(
+            block: block,
+            queryEditorViewModel: queryEditorViewModel,
+            exercisesViewModel: self
+        )
+        cachedDetailViewModels[block.id] = vm
+        return vm
     }
 
     // MARK: - Private Helpers
 
-    private func findMissingTables(for block: ExerciseBlock) async throws -> [String] {
+    /// Returns `true` if any required table is missing or empty, meaning the
+    /// block's JSON must be executed. Empty tables are dropped first so the
+    /// JSON's `CREATE TABLE` statements succeed on re-seed.
+    private func tablesNeedSeeding(for block: ExerciseBlock) async throws -> Bool {
         let existingTables = try await databaseService.listTables()
         let existingSet = Set(existingTables.map { $0.lowercased() })
-        return block.tableNames.filter { !existingSet.contains($0.lowercased()) }
+
+        var needsSeeding = false
+        for tableName in block.tableNames {
+            if !existingSet.contains(tableName.lowercased()) {
+                needsSeeding = true
+            } else {
+                // Table exists — verify it has rows.
+                let result = try await databaseService.executeQuery(
+                    "SELECT COUNT(*) FROM \(tableName)"
+                )
+                let count = result.rows.first.flatMap { Int($0[0]) } ?? 0
+                if count == 0 {
+                    // Empty table from an interrupted seed — drop so JSON can recreate it.
+                    _ = try await databaseService.executeNonQuery("DROP TABLE IF EXISTS \(tableName)")
+                    needsSeeding = true
+                }
+            }
+        }
+        return needsSeeding
     }
 
     private func runJSON(for block: ExerciseBlock) async throws {
@@ -212,6 +288,18 @@ final class ExercisesViewModel {
             do {
                 let data = try await databaseService.getTableData(tableName, limit: 200)
                 tablePreviewData[tableName] = data
+            } catch {
+                // Non-fatal
+            }
+        }
+    }
+
+    private func loadTableStructures(for block: ExerciseBlock) async {
+        for tableName in block.tableNames {
+            guard tableStructureData[tableName] == nil else { continue }
+            do {
+                let info = try await databaseService.getTableInfo(tableName)
+                tableStructureData[tableName] = info
             } catch {
                 // Non-fatal
             }

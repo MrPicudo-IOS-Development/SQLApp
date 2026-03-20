@@ -41,7 +41,13 @@ final class SQLiteDatabaseService: DatabaseServiceProtocol, @unchecked Sendable 
     ///   - databaseName: The filename for the SQLite database. Defaults to `"user_database.sqlite"`.
     ///   - enableHistory: Whether to create the internal `_query_history` table.
     ///     Pass `false` for databases that don't need query history (e.g. the app exercise database).
-    nonisolated init(databaseName: String = "user_database.sqlite", enableHistory: Bool = true) {
+    ///   - enableScores: Whether to create the internal `_exercise_scores` table.
+    ///     Pass `true` for the app exercise database.
+    nonisolated init(
+        databaseName: String = "user_database.sqlite",
+        enableHistory: Bool = true,
+        enableScores: Bool = false
+    ) {
         self.queue = DispatchQueue(label: "com.sqlapp.database.\(databaseName)", qos: .userInitiated)
 
         let documentsURL = FileManager.default.urls(
@@ -69,6 +75,18 @@ final class SQLiteDatabaseService: DatabaseServiceProtocol, @unchecked Sendable 
                 )
                 """
             sqlite3_exec(db, createHistorySQL, nil, nil, nil)
+        }
+
+        // Create the internal scores table for the exercise database.
+        if enableScores, let db {
+            let createScoresSQL = """
+                CREATE TABLE IF NOT EXISTS _exercise_scores (
+                    block_id TEXT PRIMARY KEY,
+                    best_stars INTEGER NOT NULL,
+                    updated_at REAL NOT NULL
+                )
+                """
+            sqlite3_exec(db, createScoresSQL, nil, nil, nil)
         }
     }
 
@@ -338,6 +356,64 @@ final class SQLiteDatabaseService: DatabaseServiceProtocol, @unchecked Sendable 
                 sqlite3_free(errorPointer)
                 throw DatabaseError.queryFailed(message)
             }
+        }
+    }
+
+    // MARK: - Exercise Score Persistence
+
+    /// Inserts or replaces the best star count for a given exercise block.
+    nonisolated func saveScore(blockID: String, stars: Int) async throws {
+        try await performOnQueue { db in
+            guard let db else { throw DatabaseError.databaseNotOpen }
+
+            let sql = """
+                INSERT OR REPLACE INTO _exercise_scores (block_id, best_stars, updated_at)
+                VALUES (?, ?, ?)
+                """
+
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                let message = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.prepareFailed(message)
+            }
+            defer { sqlite3_finalize(statement) }
+
+            let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+
+            sqlite3_bind_text(statement, 1, blockID, -1, transient)
+            sqlite3_bind_int(statement, 2, Int32(stars))
+            sqlite3_bind_double(statement, 3, Date().timeIntervalSince1970)
+
+            if sqlite3_step(statement) != SQLITE_DONE {
+                let message = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.queryFailed(message)
+            }
+        }
+    }
+
+    /// Loads all persisted exercise scores as a dictionary keyed by block stable ID.
+    nonisolated func loadScores() async throws -> [String: Int] {
+        try await performOnQueue { db in
+            guard let db else { throw DatabaseError.databaseNotOpen }
+
+            let sql = "SELECT block_id, best_stars FROM _exercise_scores"
+
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                let message = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.prepareFailed(message)
+            }
+            defer { sqlite3_finalize(statement) }
+
+            var scores: [String: Int] = [:]
+            while sqlite3_step(statement) == SQLITE_ROW {
+                if let blockIDPtr = sqlite3_column_text(statement, 0) {
+                    let blockID = String(cString: blockIDPtr)
+                    let stars = Int(sqlite3_column_int(statement, 1))
+                    scores[blockID] = stars
+                }
+            }
+            return scores
         }
     }
 }

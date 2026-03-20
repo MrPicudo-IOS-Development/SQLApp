@@ -58,7 +58,13 @@ struct TableListView: View {
             }
             .navigationTitle("Tables")
             .navigationDestination(for: String.self) { tableName in
-                TableDetailView(tableName: tableName, viewModel: viewModel, settingsViewModel: settingsViewModel)
+                TableDetailView(
+                    viewModel: TableDetailViewModel(
+                        tableName: tableName,
+                        databaseService: viewModel.databaseServiceForDetail
+                    ),
+                    settingsViewModel: settingsViewModel
+                )
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

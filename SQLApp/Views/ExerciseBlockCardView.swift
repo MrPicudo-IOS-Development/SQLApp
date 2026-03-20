@@ -8,8 +8,9 @@ import SwiftUI
 /// A reusable card that represents a block of 5 exercises sharing the same table(s).
 ///
 /// Layout:
-/// - Left: a small square image related to the table data, with an optional score
-///   arc badge overlaid when the block has been completed at least once.
+/// - Left: a small square image with 5 small stars below it, vertically centered.
+///   Stars are gray and empty by default; yellow and filled proportionally once
+///   the block has been completed at least once.
 /// - Right: the block title, a row of SQL keyword capsules, and a summary text.
 struct ExerciseBlockCardView: View {
 
@@ -19,43 +20,39 @@ struct ExerciseBlockCardView: View {
     /// The accent color used for SQL keyword capsules.
     let accentColor: Color
 
-    /// The best score (0–100) ever achieved for this block, or `nil` if never completed.
-    var bestScore: Int? = nil
+    /// The best star count (0–5) ever achieved for this block, or `nil` if never completed.
+    var bestStars: Int? = nil
 
-    // MARK: - Score arc color
+    // MARK: - Layout constants
 
-    private var scoreColor: Color {
-        guard let score = bestScore else { return accentColor }
-        switch score {
-        case 100:   return .green
-        case 70...: return accentColor
-        case 40...: return .orange
-        default:    return .red
-        }
-    }
+    /// Fixed inner height for all cards.
+    private static let cardContentHeight: CGFloat = 135
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            // Square image on the left, with score arc badge when completed
-            Image(block.imageName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 56, height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(alignment: .bottomTrailing) {
-                    if let score = bestScore {
-                        ScoreArcBadge(score: score, color: scoreColor)
-                            .offset(x: 8, y: 8)
-                    }
-                }
+            // Image + stars column, vertically centered
+            VStack(spacing: 6) {
+                Image(block.imageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 90, height: 90)
 
-            // Text content on the right
+                StarsView(
+                    filledCount: bestStars ?? 0,
+                    totalCount: 5,
+                    size: 12,
+                    color: bestStars != nil ? .yellow : Color(.systemGray4)
+                )
+            }
+
+            // Text content on the right — fixed height, top-aligned
             VStack(alignment: .leading, spacing: 6) {
                 Text(block.title)
                     .font(.subheadline)
                     .fontWeight(.semibold)
+                    .lineLimit(1)
 
-                // SQL keywords as small capsules
+                // SQL keywords as small capsules, clipped to 3 rows max
                 FlowLayout(spacing: 4) {
                     ForEach(block.sqlKeywords, id: \.self) { keyword in
                         Text(keyword)
@@ -68,12 +65,15 @@ struct ExerciseBlockCardView: View {
                             .clipShape(Capsule())
                     }
                 }
+                .frame(maxHeight: 60, alignment: .topLeading)
+                .clipped()
 
                 Text(block.summary)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(3)
             }
+            .frame(height: Self.cardContentHeight, alignment: .top)
         }
         .padding(12)
         .background(Color(.secondarySystemGroupedBackground))
@@ -81,34 +81,34 @@ struct ExerciseBlockCardView: View {
     }
 }
 
-// MARK: - Score Arc Badge
+// MARK: - Stars View
 
-/// A compact circular arc badge showing a percentage score.
-/// Designed to sit unobtrusively in the corner of an icon.
-private struct ScoreArcBadge: View {
+/// A row of star icons: filled stars for correct answers, empty stars for the rest.
+///
+/// Reused by ``ExerciseBlockCardView`` (small, on cards) and
+/// ``BlockResultsView`` (large, on the results screen).
+struct StarsView: View {
 
-    let score: Int
-    let color: Color
+    /// How many stars should be filled (0…totalCount).
+    let filledCount: Int
+
+    /// Total number of stars to display.
+    let totalCount: Int
+
+    /// Point size for each star icon.
+    var size: CGFloat = 24
+
+    /// The color applied to all stars (filled and empty).
+    /// Defaults to yellow.
+    var color: Color = .yellow
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color(.secondarySystemGroupedBackground))
-                .frame(width: 26, height: 26)
-
-            Circle()
-                .stroke(color.opacity(0.2), lineWidth: 3)
-                .frame(width: 20, height: 20)
-
-            Circle()
-                .trim(from: 0, to: CGFloat(score) / 100)
-                .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .frame(width: 20, height: 20)
-
-            Text("\(score)")
-                .font(.system(size: 6, weight: .bold, design: .rounded))
-                .foregroundStyle(color)
+        HStack(spacing: size * 0.2) {
+            ForEach(0..<totalCount, id: \.self) { index in
+                Image(systemName: index < filledCount ? "star.fill" : "star")
+                    .font(.system(size: size))
+                    .foregroundStyle(color)
+            }
         }
     }
 }

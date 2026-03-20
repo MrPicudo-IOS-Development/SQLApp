@@ -98,7 +98,9 @@ final class QueryEditorViewModel {
             let isQuery = uppercased.hasPrefix("SELECT") || uppercased.hasPrefix("PRAGMA")
 
             if isQuery {
-                let result = try await databaseService.executeQuery(trimmed)
+                // Apply a safety limit to user queries that don't already include one.
+                let safeSql = Self.applySafetyLimit(to: trimmed)
+                let result = try await databaseService.executeQuery(safeSql)
                 queryResult = result
                 executionMessage = "\(result.rowCount) row(s) returned"
                 addToHistory(sql: trimmed, success: true, rows: result.rowCount)
@@ -234,6 +236,20 @@ final class QueryEditorViewModel {
     ///   - success: Whether the execution completed without errors.
     ///   - rows: The number of rows affected or returned. Defaults to `nil`.
     ///   - errorMsg: The error description if execution failed. Defaults to `nil`.
+    /// Maximum number of rows returned by a user-initiated SELECT query.
+    private static let maxRowLimit = 1000
+
+    /// Appends `LIMIT <maxRowLimit>` to a SELECT query if it doesn't already
+    /// contain a LIMIT clause, preventing excessive memory usage.
+    private static func applySafetyLimit(to sql: String) -> String {
+        let upper = sql.uppercased()
+        // Skip PRAGMAs — they don't support LIMIT.
+        guard upper.hasPrefix("SELECT") else { return sql }
+        // If the user already wrote a LIMIT, respect it.
+        if upper.range(of: "\\bLIMIT\\b", options: .regularExpression) != nil { return sql }
+        return "\(sql) LIMIT \(maxRowLimit)"
+    }
+
     private func addToHistory(sql: String, success: Bool, rows: Int? = nil, errorMsg: String? = nil) {
         let item = QueryHistoryItem(
             sql: sql,
