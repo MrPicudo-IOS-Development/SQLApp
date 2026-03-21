@@ -28,16 +28,29 @@ final class SettingsViewModel {
     /// The `UserDefaults` key used to store the maximum number of rows shown for pinned tables.
     private static let pinnedRowLimitKey = "pinnedTableRowLimit"
 
+    /// The `UserDefaults` key used to store the selected app style.
+    private static let selectedStyleKey = "selectedAppStyle"
+
     /// The available options for the maximum number of rows displayed in pinned tables.
     static let rowLimitOptions = [5, 10, 20, 50, 100, 200]
 
     // MARK: - State
 
+    /// The currently selected app style, determining the entire color palette.
+    ///
+    /// Changing this value persists the selection to `UserDefaults` and
+    /// updates the keyword color hex to match the new style's accent color.
+    var selectedStyle: AppStyle {
+        didSet {
+            UserDefaults.standard.set(selectedStyle.rawValue, forKey: Self.selectedStyleKey)
+            keywordColorHex = HexColor.hex(from: selectedStyle.accentColor)
+        }
+    }
+
     /// The keyword highlight color as a SwiftUI `Color`.
     ///
-    /// Reading this property converts the persisted hex string to a `Color`.
-    /// Writing this property converts the `Color` back to a hex string and
-    /// persists it to `UserDefaults`.
+    /// Derived from the persisted hex string. The setter is kept for backward
+    /// compatibility but the primary way to change colors is via ``selectedStyle``.
     var keywordColor: Color {
         get { HexColor.color(from: keywordColorHex) }
         set { keywordColorHex = HexColor.hex(from: newValue) }
@@ -86,11 +99,18 @@ final class SettingsViewModel {
 
     // MARK: - Initialization
 
-    /// Creates a new settings ViewModel, loading the persisted keyword color
-    /// from `UserDefaults` or falling back to the default dark violet.
+    /// Creates a new settings ViewModel, loading persisted values from `UserDefaults`.
+    ///
+    /// Restores the selected app style (defaulting to `.vibrant`) and derives
+    /// the keyword color from it. Also loads pinned table preferences.
     init() {
-        let hex = UserDefaults.standard.string(forKey: Self.keywordColorKey)
-            ?? HexColor.defaultKeywordHex
+        // Load selected style
+        let styleRaw = UserDefaults.standard.string(forKey: Self.selectedStyleKey) ?? ""
+        let style = AppStyle(rawValue: styleRaw) ?? .vibrant
+        self.selectedStyle = style
+
+        // Derive keyword color from the selected style's accent
+        let hex = HexColor.hex(from: style.accentColor)
         self.keywordColorHex = hex
         self.keywordUIColor = HexColor.uiColor(from: hex)
 

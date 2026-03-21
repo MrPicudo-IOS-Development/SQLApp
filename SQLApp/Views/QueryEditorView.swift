@@ -88,42 +88,62 @@ struct QueryEditorView: View {
 
     // MARK: - SQL Input
 
-    /// The SQL text editor area with syntax highlighting and a floating "Clear" button overlay.
+    /// The SQL text editor area styled with a dark "Code Preview" theme.
     ///
+    /// Features a terminal-style title bar (red/yellow/green dots), a dark background
+    /// editor area with purple keyword highlighting, and a floating "Clear" button.
     /// Uses ``SQLTextEditorView`` (a `UIViewRepresentable` wrapping `UITextView`) to
-    /// support `NSAttributedString`-based syntax highlighting. SQL keywords are displayed
-    /// in the color configured via ``SettingsViewModel`` and with semibold weight.
-    ///
-    /// The "Clear" button appears in the top-right corner when the editor gains
-    /// focus and already contains text. It disappears as soon as the user types
-    /// or deletes any character, or when the editor loses focus.
+    /// support `NSAttributedString`-based syntax highlighting.
+    /// The current style from settings.
+    private var style: AppStyle { settingsViewModel.selectedStyle }
+
     private var sqlInputSection: some View {
-        SQLTextEditorView(
-            text: $viewModel.sqlText,
-            isFocused: $isEditorFocused,
-            keywordColor: settingsViewModel.keywordUIColor
-        )
-        .frame(minHeight: 120, maxHeight: 200)
-        .background(Color(.systemFill))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(alignment: .topTrailing) {
-            if showClearButton {
-                Button {
-                    viewModel.sqlText = ""
-                    showClearButton = false
-                } label: {
-                    Text("Clear")
-                        .font(.caption.bold())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
-                }
-                .padding(8)
-                .transition(.opacity.combined(with: .scale(scale: 0.8)))
+        VStack(spacing: 0) {
+            // Terminal-style title bar
+            HStack {
+                Circle().fill(.red).frame(width: 10, height: 10)
+                Circle().fill(.yellow).frame(width: 10, height: 10)
+                Circle().fill(.green).frame(width: 10, height: 10)
+                Spacer()
+                Text("query.sql")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(style.editorSecondaryText)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(style.editorTitleBar)
+
+            // SQL text editor
+            ZStack(alignment: .topTrailing) {
+                SQLTextEditorView(
+                    text: $viewModel.sqlText,
+                    isFocused: $isEditorFocused,
+                    keywordColor: UIColor(style.editorKeywordColor)
+                )
+                .frame(minHeight: 120, maxHeight: 200)
+                .colorScheme(style.editorColorScheme)
+
+                if showClearButton {
+                    Button {
+                        viewModel.sqlText = ""
+                        showClearButton = false
+                    } label: {
+                        Text("Clear")
+                            .font(.caption.bold())
+                            .foregroundStyle(style.editorTextColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(style.editorSecondaryText.opacity(0.3))
+                            .clipShape(Capsule())
+                    }
+                    .padding(8)
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                }
+            }
+            .background(style.editorBackground)
+            .animation(.easeInOut(duration: 0.2), value: showClearButton)
         }
-        .animation(.easeInOut(duration: 0.2), value: showClearButton)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
         .padding(.top, 8)
         .onChange(of: isEditorFocused) { _, focused in
@@ -142,44 +162,65 @@ struct QueryEditorView: View {
 
     // MARK: - Control Bar
 
-    /// The control area containing a full-width "Run" button and execution status.
-    ///
-    /// The "Run" button spans the available width following HIG emphasis
-    /// guidelines for primary actions. Disabled when the SQL text is empty
-    /// or a query is already executing. Tapping "Run" dismisses the keyboard
-    /// before starting execution. A color-coded status message appears
-    /// beneath the button after execution completes.
+    /// The control bar with a green "Run" button, execution status, and dismiss button,
+    /// styled with the dark "Code Preview" theme.
     private var controlBar: some View {
-        VStack(spacing: 6) {
+        HStack(spacing: 12) {
             Button {
                 dismissKeyboard()
                 Task { await viewModel.executeSQL() }
             } label: {
-                Group {
+                HStack(spacing: 6) {
                     if viewModel.isExecuting {
                         ProgressView()
-                            .tint(.white)
+                            .tint(style.runButtonTextColor)
+                            .controlSize(.small)
                     } else {
-                        Label("Run", systemImage: "play.fill")
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 12))
                     }
+                    Text("Run")
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
                 }
-                .frame(maxWidth: .infinity)
+                .foregroundStyle(style.runButtonTextColor)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(style.runButtonColor)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
             .disabled(
                 viewModel.sqlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || viewModel.isExecuting
             )
+            .opacity(
+                viewModel.sqlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? 0.5 : 1.0
+            )
 
             if let message = viewModel.executionMessage {
                 Text(message)
-                    .font(.caption)
+                    .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(executionMessageColor)
             }
+
+            Spacer()
+
+            if hasResults {
+                Button {
+                    viewModel.clearResults()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(style.editorSecondaryText)
+                }
+            }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(style.editorTitleBar)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
-        .padding(.vertical, 10)
+        .padding(.vertical, 6)
     }
 
     // MARK: - Results
@@ -205,7 +246,7 @@ struct QueryEditorView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else if let result = viewModel.queryResult {
-                ResultsTableView(result: result, headerColor: settingsViewModel.keywordColor)
+                StyledResultsTableView(result: result, style: style)
             } else if viewModel.executionMessage != nil {
                 ContentUnavailableView(
                     "Done",
@@ -217,19 +258,6 @@ struct QueryEditorView: View {
             }
         }
         .frame(maxHeight: .infinity)
-        .overlay(alignment: .topTrailing) {
-            if hasResults {
-                Button {
-                    viewModel.clearResults()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.body)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(8)
-            }
-        }
     }
 
     // MARK: - Empty State & Pinned Tables
@@ -246,7 +274,7 @@ struct QueryEditorView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "text.page")
                             .font(.system(size: 40))
-                            .foregroundStyle(settingsViewModel.keywordColor)
+                            .foregroundStyle(style.accentColor)
                         Text("No Results")
                             .font(.title3)
                             .fontWeight(.semibold)
@@ -279,7 +307,7 @@ struct QueryEditorView: View {
             HStack {
                 Label(pinned.name, systemImage: "tablecells")
                     .font(.headline)
-                    .foregroundStyle(settingsViewModel.keywordColor)
+                    .foregroundStyle(style.accentColor)
                 Spacer()
                 Button {
                     viewModel.unpinTable(pinned)
@@ -295,7 +323,7 @@ struct QueryEditorView: View {
 
             switch settingsViewModel.pinnedTableDisplayMode {
             case .data:
-                ResultsTableView(result: pinned.data, headerColor: settingsViewModel.keywordColor)
+                StyledResultsTableView(result: pinned.data, style: style)
                     .frame(minHeight: 150, maxHeight: 300)
             case .structure:
                 pinnedTableStructure(pinned.info)
@@ -316,14 +344,14 @@ struct QueryEditorView: View {
                 GridRow {
                     Text("Column")
                         .font(.system(.caption, design: .monospaced).bold())
-                        .foregroundStyle(settingsViewModel.keywordColor)
+                        .foregroundStyle(style.accentColor)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
                         .background(Color(.systemGray5))
                     Text("Type")
                         .font(.system(.caption, design: .monospaced).bold())
-                        .foregroundStyle(settingsViewModel.keywordColor)
+                        .foregroundStyle(style.accentColor)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
@@ -394,7 +422,7 @@ struct QueryEditorView: View {
                                 Text(tableName)
                             } icon: {
                                 Image(systemName: "tablecells")
-                                    .foregroundStyle(settingsViewModel.keywordColor)
+                                    .foregroundStyle(style.accentColor)
                             }
                         }
                         .buttonStyle(.plain)

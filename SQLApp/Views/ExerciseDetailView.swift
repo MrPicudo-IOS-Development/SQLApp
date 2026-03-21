@@ -34,6 +34,9 @@ struct ExerciseDetailView: View {
     /// The settings ViewModel providing the keyword highlight color.
     let settingsViewModel: SettingsViewModel
 
+    /// The current style from settings.
+    private var style: AppStyle { settingsViewModel.selectedStyle }
+
     // MARK: - UI State
 
     @State private var isEditorFocused = false
@@ -144,35 +147,57 @@ struct ExerciseDetailView: View {
 
     // MARK: - SQL Input
 
+    /// The SQL editor styled with the dark "Code Preview" theme.
+    /// Supports locked state after a valid execution.
     private var sqlInputSection: some View {
-        SQLTextEditorView(
-            text: $viewModel.queryEditorViewModel.sqlText,
-            isFocused: $isEditorFocused,
-            keywordColor: settingsViewModel.keywordUIColor
-        )
-        .frame(minHeight: 120, maxHeight: 200)
-        .opacity(viewModel.editorLocked ? 0.6 : 1.0)
-        .allowsHitTesting(!viewModel.editorLocked)
-        .background(Color(.systemFill))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(alignment: .topTrailing) {
-            if showClearButton && !viewModel.editorLocked {
-                Button {
-                    viewModel.queryEditorViewModel.sqlText = ""
-                    showClearButton = false
-                } label: {
-                    Text("Clear")
-                        .font(.caption.bold())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
-                }
-                .padding(8)
-                .transition(.opacity.combined(with: .scale(scale: 0.8)))
+        VStack(spacing: 0) {
+            // Terminal-style title bar
+            HStack {
+                Circle().fill(.red).frame(width: 10, height: 10)
+                Circle().fill(.yellow).frame(width: 10, height: 10)
+                Circle().fill(.green).frame(width: 10, height: 10)
+                Spacer()
+                Text("exercise.sql")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(style.editorSecondaryText)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(style.editorTitleBar)
+
+            // SQL text editor
+            ZStack(alignment: .topTrailing) {
+                SQLTextEditorView(
+                    text: $viewModel.queryEditorViewModel.sqlText,
+                    isFocused: $isEditorFocused,
+                    keywordColor: UIColor(style.editorKeywordColor)
+                )
+                .frame(minHeight: 120, maxHeight: 200)
+                .colorScheme(style.editorColorScheme)
+
+                if showClearButton && !viewModel.editorLocked {
+                    Button {
+                        viewModel.queryEditorViewModel.sqlText = ""
+                        showClearButton = false
+                    } label: {
+                        Text("Clear")
+                            .font(.caption.bold())
+                            .foregroundStyle(style.editorTextColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(style.editorSecondaryText.opacity(0.3))
+                            .clipShape(Capsule())
+                    }
+                    .padding(8)
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                }
+            }
+            .background(style.editorBackground)
+            .opacity(viewModel.editorLocked ? 0.6 : 1.0)
+            .allowsHitTesting(!viewModel.editorLocked)
+            .animation(.easeInOut(duration: 0.2), value: showClearButton)
         }
-        .animation(.easeInOut(duration: 0.2), value: showClearButton)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
         .padding(.top, 8)
         .onChange(of: isEditorFocused) { _, focused in
@@ -189,45 +214,59 @@ struct ExerciseDetailView: View {
 
     // MARK: - Control Bar
 
+    /// The control bar with "Run" button and execution status, styled per selected style.
     private var controlBar: some View {
-        VStack(spacing: 6) {
-            runButton
+        HStack(spacing: 12) {
+            Button {
+                dismissKeyboard()
+                Task { await viewModel.runQuery() }
+            } label: {
+                HStack(spacing: 6) {
+                    if viewModel.queryEditorViewModel.isExecuting {
+                        ProgressView()
+                            .tint(style.runButtonTextColor)
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 12))
+                    }
+                    Text("Run")
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                }
+                .foregroundStyle(style.runButtonTextColor)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(style.runButtonColor)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .disabled(
+                viewModel.editorLocked
+                || viewModel.queryEditorViewModel.sqlText
+                    .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || viewModel.queryEditorViewModel.isExecuting
+            )
+            .opacity(
+                (viewModel.editorLocked
+                 || viewModel.queryEditorViewModel.sqlText
+                    .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                ? 0.5 : 1.0
+            )
 
             if let message = viewModel.queryEditorViewModel.executionMessage,
                !viewModel.showVerdict {
                 Text(message)
-                    .font(.caption)
+                    .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(executionMessageColor)
             }
+
+            Spacer()
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(style.editorTitleBar)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
-        .padding(.vertical, 10)
-    }
-
-    // MARK: - Run Button
-
-    private var runButton: some View {
-        Button {
-            dismissKeyboard()
-            Task { await viewModel.runQuery() }
-        } label: {
-            Group {
-                if viewModel.queryEditorViewModel.isExecuting {
-                    ProgressView().tint(.white)
-                } else {
-                    Label("Run", systemImage: "play.fill")
-                }
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .disabled(
-            viewModel.editorLocked
-            || viewModel.queryEditorViewModel.sqlText
-                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || viewModel.queryEditorViewModel.isExecuting
-        )
+        .padding(.vertical, 6)
     }
 
     // MARK: - Verdict Modal
@@ -408,11 +447,11 @@ struct ExerciseDetailView: View {
                     Text("Solution").fontWeight(.semibold)
                 }
                 .font(.subheadline)
-                .foregroundStyle(settingsViewModel.keywordColor)
+                .foregroundStyle(style.accentColor)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
             }
-            ResultsTableView(result: result, headerColor: settingsViewModel.keywordColor)
+            StyledResultsTableView(result: result, style: style)
                 .frame(minHeight: 150, maxHeight: 400)
         }
         .background(Color(.secondarySystemGroupedBackground))
@@ -462,7 +501,7 @@ struct ExerciseDetailView: View {
                             .frame(width: 16)
                         Label(tableName, systemImage: "tablecells")
                             .font(.headline)
-                            .foregroundStyle(settingsViewModel.keywordColor)
+                            .foregroundStyle(style.accentColor)
                     }
                 }
                 .buttonStyle(.plain)
@@ -504,7 +543,7 @@ struct ExerciseDetailView: View {
     private func tableDataContent(tableName: String) -> some View {
         Group {
             if let data = viewModel.exercisesViewModel.previewData(for: tableName) {
-                ResultsTableView(result: data, headerColor: settingsViewModel.keywordColor)
+                StyledResultsTableView(result: data, style: style)
                     .frame(minHeight: 150, maxHeight: 300)
             } else {
                 ProgressView()
@@ -569,13 +608,13 @@ struct ExerciseDetailView: View {
         return ZStack {
             // Track
             Circle()
-                .stroke(settingsViewModel.keywordColor.opacity(0.15), lineWidth: 3)
+                .stroke(style.accentColor.opacity(0.15), lineWidth: 3)
 
             // Progress arc
             Circle()
                 .trim(from: 0, to: progress)
                 .stroke(
-                    settingsViewModel.keywordColor,
+                    style.accentColor,
                     style: StrokeStyle(lineWidth: 3, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))

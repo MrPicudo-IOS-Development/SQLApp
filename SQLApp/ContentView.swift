@@ -43,6 +43,11 @@ struct ContentView: View {
     /// Manages per-block table seeding for the Exercises tab.
     @State private var exercisesVM: ExercisesViewModel
 
+    // MARK: - Skill Test ViewModel
+
+    /// The ViewModel for the Skill Test SQL editor, connected to the user database.
+    @State private var skillTestEditorVM: QueryEditorViewModel
+
     // MARK: - Shared
 
     /// The ViewModel for settings, shared across all tabs for keyword color.
@@ -67,6 +72,9 @@ struct ContentView: View {
         // App database ViewModels
         self._exercisesEditorVM = State(initialValue: QueryEditorViewModel(databaseService: appDatabaseService))
         self._exercisesVM = State(initialValue: ExercisesViewModel(databaseService: appDatabaseService))
+
+        // Skill Test ViewModel (user database)
+        self._skillTestEditorVM = State(initialValue: QueryEditorViewModel(databaseService: userDatabaseService))
     }
 
     var body: some View {
@@ -91,6 +99,13 @@ struct ContentView: View {
                     queryEditorViewModel: exercisesEditorVM,
                     settingsViewModel: settingsVM,
                     exercisesViewModel: exercisesVM
+                )
+            }
+
+            Tab("Skill Test", systemImage: "paintbrush") {
+                SkillTestView(
+                    viewModel: skillTestEditorVM,
+                    settingsViewModel: settingsVM
                 )
             }
 

@@ -50,7 +50,7 @@ struct TableListView: View {
                                 Text(tableName)
                             } icon: {
                                 Image(systemName: "tablecells")
-                                    .foregroundStyle(settingsViewModel.keywordColor)
+                                    .foregroundStyle(settingsViewModel.selectedStyle.accentColor)
                             }
                         }
                     }

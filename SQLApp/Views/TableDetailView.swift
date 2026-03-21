@@ -106,11 +106,11 @@ struct TableDetailView: View {
 
     // MARK: - Data View
 
-    /// Displays the table's row data using the reusable ``ResultsTableView``.
+    /// Displays the table's row data using the style-aware ``StyledResultsTableView``.
     private var dataView: some View {
         Group {
             if let data = viewModel.tableData {
-                ResultsTableView(result: data, headerColor: settingsViewModel.keywordColor)
+                StyledResultsTableView(result: data, style: settingsViewModel.selectedStyle)
             } else {
                 ProgressView()
             }

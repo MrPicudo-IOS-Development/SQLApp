@@ -77,3 +77,16 @@ enum HexColor {
         return String(format: "#%02X%02X%02X", r, g, b)
     }
 }
+
+// MARK: - Hex Integer Color Initializer
+
+extension Color {
+    /// Creates a `Color` from a hex integer (e.g. `0x1E293B`).
+    init(hex: UInt) {
+        self.init(
+            red: Double((hex >> 16) & 0xFF) / 255,
+            green: Double((hex >> 8) & 0xFF) / 255,
+            blue: Double(hex & 0xFF) / 255
+        )
+    }
+}

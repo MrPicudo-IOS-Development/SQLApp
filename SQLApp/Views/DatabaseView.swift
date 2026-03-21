@@ -59,13 +59,13 @@ struct DatabaseView: View {
                 case .queryHistory:
                     QueryHistoryListView(
                         databaseViewModel: databaseViewModel,
-                        keywordColor: settingsViewModel.keywordColor
+                        keywordColor: settingsViewModel.selectedStyle.accentColor
                     )
                 case .queryDetail(let itemId):
                     if let item = databaseViewModel.history.first(where: { $0.id == itemId }) {
                         HistoryQueryDetailView(
                             item: item,
-                            keywordColor: settingsViewModel.keywordColor
+                            keywordColor: settingsViewModel.selectedStyle.accentColor
                         )
                     }
                 }
@@ -121,7 +121,7 @@ struct DatabaseView: View {
                             NavigationLink(value: Destination.table(summary.name)) {
                                 TableCardView(
                                     summary: summary,
-                                    accentColor: settingsViewModel.keywordColor
+                                    accentColor: settingsViewModel.selectedStyle.accentColor
                                 )
                             }
                             .buttonStyle(.plain)
@@ -145,7 +145,7 @@ struct DatabaseView: View {
             HStack {
                 Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
                     .font(.title3)
-                    .foregroundStyle(settingsViewModel.keywordColor)
+                    .foregroundStyle(settingsViewModel.selectedStyle.accentColor)
                     .frame(width: 36)
                 Text("Query History")
                     .font(.body)

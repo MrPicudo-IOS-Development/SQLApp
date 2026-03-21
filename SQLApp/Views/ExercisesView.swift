@@ -64,7 +64,7 @@ struct ExercisesView: View {
                     BlockResultsView(
                         block: block,
                         attempts: attempts,
-                        accentColor: settingsViewModel.keywordColor,
+                        accentColor: settingsViewModel.selectedStyle.accentColor,
                         onDismiss: { navigationPath = NavigationPath() }
                     )
                 }
@@ -90,18 +90,18 @@ struct ExercisesView: View {
         if seeded && error == nil {
             // Tables ready — navigation allowed
             NavigationLink(value: Destination.exerciseDetail(block)) {
-                ExerciseBlockCardView(
+                StyledExerciseBlockCardView(
                     block: block,
-                    accentColor: settingsViewModel.keywordColor,
+                    style: settingsViewModel.selectedStyle,
                     bestStars: exercisesViewModel.bestStars(for: block)
                 )
             }
             .buttonStyle(.plain)
         } else {
             // Seeding in progress or error — navigation blocked
-            ExerciseBlockCardView(
+            StyledExerciseBlockCardView(
                 block: block,
-                accentColor: settingsViewModel.keywordColor,
+                style: settingsViewModel.selectedStyle,
                 bestStars: exercisesViewModel.bestStars(for: block)
             )
             .overlay {
