@@ -64,7 +64,7 @@ enum AppStyle: String, CaseIterable, Identifiable, Codable {
         case .vibrant: Color(hex: 0x0F172A)
         case .glassmorphism: Color(hex: 0x1E1B4B)
         case .minimalism: Color(hex: 0xF8FAFC)
-        case .darkMode: Color(hex: 0x0F172A)
+        case .darkMode: Color(hex: 0x000000)
         case .bentoGrid: Color(hex: 0x020617)
         }
     }
@@ -75,7 +75,7 @@ enum AppStyle: String, CaseIterable, Identifiable, Codable {
         case .vibrant: Color(hex: 0x1E293B)
         case .glassmorphism: Color(hex: 0x312E81)
         case .minimalism: Color(hex: 0xE2E8F0)
-        case .darkMode: Color(hex: 0x1E293B)
+        case .darkMode: Color(hex: 0x121212)
         case .bentoGrid: Color(hex: 0x0F172A)
         }
     }
@@ -119,7 +119,7 @@ enum AppStyle: String, CaseIterable, Identifiable, Codable {
         case .vibrant: Color(hex: 0x22C55E)
         case .glassmorphism: Color(hex: 0x10B981)
         case .minimalism: Color(hex: 0x64748B)
-        case .darkMode: Color(hex: 0x22C55E)
+        case .darkMode: Color(hex: 0xF59E0B)
         case .bentoGrid: Color(hex: 0x22C55E)
         }
     }
@@ -265,6 +265,31 @@ enum AppStyle: String, CaseIterable, Identifiable, Codable {
         case .glassmorphism: 16
         case .minimalism: 0
         case .darkMode: 8
+        case .bentoGrid: 12
+        }
+    }
+
+    // MARK: - Card Layout
+
+    /// Fixed height for exercise block cards.
+    /// Dark Mode is sized for: title (1 line) + keywords (2 rows) + summary (3 lines).
+    var cardHeight: CGFloat {
+        switch self {
+        case .vibrant: 180
+        case .glassmorphism: 210
+        case .minimalism: 220
+        case .darkMode: 155
+        case .bentoGrid: 220
+        }
+    }
+
+    /// Vertical spacing between exercise block cards in the list.
+    var cardSpacing: CGFloat {
+        switch self {
+        case .vibrant: 12
+        case .glassmorphism: 14
+        case .minimalism: 12
+        case .darkMode: 16
         case .bentoGrid: 12
         }
     }

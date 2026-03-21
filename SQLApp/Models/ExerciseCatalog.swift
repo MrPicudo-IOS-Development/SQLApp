@@ -18,7 +18,7 @@ enum ExerciseCatalog {
         // MARK: - Block 1 · Dinosaurs
         ExerciseBlock(
             imageName: "Dinosaurs",
-            sqlKeywords: ["SELECT", "FROM", "WHERE", "ORDER BY"],
+            sqlKeywords: ["SELECT", "FROM", "WHERE", "ORDER BY", "LIMIT"],
             summary: "Query and filter prehistoric creatures by period, diet, and size.",
             tableNames: ["Dinosaurs"],
             jsonFileName: "dinosaursInfo",

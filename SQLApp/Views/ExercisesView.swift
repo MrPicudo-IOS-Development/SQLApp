@@ -40,7 +40,7 @@ struct ExercisesView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ScrollView {
-                VStack(spacing: 12) {
+                VStack(spacing: settingsViewModel.selectedStyle.cardSpacing) {
                     ForEach(exerciseBlocks) { block in
                         blockCard(for: block)
                     }

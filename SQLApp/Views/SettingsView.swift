@@ -20,6 +20,20 @@ struct SettingsView: View {
     /// The ViewModel that manages settings persistence and state.
     @Bindable var viewModel: SettingsViewModel
 
+    /// Fixed column width for each style button, computed from the longest style name
+    /// so all buttons are equally sized regardless of their label length.
+    private static let styleButtonWidth: CGFloat = {
+        let font = UIFont.preferredFont(forTextStyle: .caption2)
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: font.pointSize, weight: .medium)
+        ]
+        let widest = AppStyle.allCases
+            .map { ($0.name as NSString).size(withAttributes: attrs).width }
+            .max() ?? 56
+        // Use the wider of the label width or the icon (56pt), with a small margin
+        return max(ceil(widest), 56)
+    }()
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -101,7 +115,7 @@ struct SettingsView: View {
                 .fontWeight(.bold)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: 5) {
                     ForEach(AppStyle.allCases) { style in
                         Button {
                             withAnimation(.spring(duration: 0.3)) {
@@ -120,7 +134,7 @@ struct SettingsView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 14))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14)
-                                            .stroke(
+                                            .strokeBorder(
                                                 viewModel.selectedStyle == style
                                                     ? style.accentColor
                                                     : .clear,
@@ -131,17 +145,19 @@ struct SettingsView: View {
                                 Text(style.name)
                                     .font(.caption2)
                                     .fontWeight(.medium)
+                                    .lineLimit(1)
                             }
                             .foregroundStyle(
                                 viewModel.selectedStyle == style
                                     ? style.accentColor
                                     : .secondary
                             )
+                            // All columns sized to the widest label
+                            .frame(width: Self.styleButtonWidth)
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 4)
             }
 
             // Style description card

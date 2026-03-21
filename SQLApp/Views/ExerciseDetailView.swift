@@ -112,7 +112,6 @@ struct ExerciseDetailView: View {
         VStack(spacing: 0) {
             instructionsSection
             sqlInputSection
-            controlBar
             resultsArea
         }
         .contentShape(Rectangle())
@@ -196,6 +195,9 @@ struct ExerciseDetailView: View {
             .opacity(viewModel.editorLocked ? 0.6 : 1.0)
             .allowsHitTesting(!viewModel.editorLocked)
             .animation(.easeInOut(duration: 0.2), value: showClearButton)
+
+            // Control bar (attached to editor)
+            controlBar
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
@@ -264,9 +266,6 @@ struct ExerciseDetailView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(style.editorTitleBar)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
-        .padding(.vertical, 6)
     }
 
     // MARK: - Verdict Modal

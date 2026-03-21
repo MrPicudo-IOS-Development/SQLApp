@@ -75,21 +75,22 @@ struct SQLTextEditorView: UIViewRepresentable {
     ///   - context: The representable context containing the coordinator.
     func updateUIView(_ textView: UITextView, context: Context) {
         let coordinator = context.coordinator
+        let colorChanged = coordinator.keywordColor != keywordColor
         coordinator.keywordColor = keywordColor
 
-        // Only re-highlight when the plain text has actually changed externally
-        // (e.g., Clear button, history load). Comparing plain strings avoids
-        // re-triggering on every SwiftUI re-render.
-        if textView.text != text {
+        // Re-highlight when the plain text changed externally (Clear button,
+        // history load) OR when the keyword color changed (style switch).
+        if textView.text != text || colorChanged {
             coordinator.isUpdating = true
-            // Mutate textStorage in-place to keep UIKit's tokenizer coherent.
-            // See SQLTextEditorCoordinator.textViewDidChange for the full explanation.
             let highlighted = SQLSyntaxHighlighter.highlight(text, keywordColor: keywordColor)
             textView.textStorage.beginEditing()
             textView.textStorage.setAttributedString(highlighted)
             textView.textStorage.endEditing()
-            let safeLocation = min(text.utf16.count, textView.textStorage.length)
-            textView.selectedRange = NSRange(location: safeLocation, length: 0)
+            // Only move the cursor when the text itself changed, not on color-only updates
+            if textView.text != text {
+                let safeLocation = min(text.utf16.count, textView.textStorage.length)
+                textView.selectedRange = NSRange(location: safeLocation, length: 0)
+            }
             coordinator.isUpdating = false
         }
     }

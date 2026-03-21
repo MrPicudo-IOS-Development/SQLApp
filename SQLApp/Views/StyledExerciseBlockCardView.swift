@@ -16,10 +16,6 @@ struct StyledExerciseBlockCardView: View {
     let style: AppStyle
     var bestStars: Int? = nil
 
-    /// Fixed height for all card styles so cards with less content
-    /// still match those with the maximum (title + 3 keyword rows + 3 summary lines).
-    private static let fixedCardHeight: CGFloat = 220
-
     var body: some View {
         Group {
             switch style {
@@ -35,7 +31,7 @@ struct StyledExerciseBlockCardView: View {
                 bentoGridCard
             }
         }
-        .frame(height: Self.fixedCardHeight)
+        .frame(height: style.cardHeight)
     }
 
     // MARK: - Vibrant & Block
@@ -45,70 +41,73 @@ struct StyledExerciseBlockCardView: View {
     /// stars as small filled/empty squares.
     private var vibrantCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Full-width image banner
-            ZStack(alignment: .bottomLeading) {
-                Image(block.imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 100)
-                    .clipped()
-
-                // Gradient overlay for text readability
-                LinearGradient(
-                    colors: [.clear, Color(hex: 0x0F172A).opacity(0.8)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 50)
-
-                // Title over image
-                Text(block.title)
-                    .font(.headline)
-                    .fontWeight(.heavy)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-            }
+            // Title bar
+            Text(block.title)
+                .font(.headline)
+                .fontWeight(.heavy)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(hex: 0x0F172A))
 
             // Thick accent bar
             Rectangle()
                 .fill(style.accentColor)
                 .frame(height: 4)
 
-            // Content area
-            VStack(alignment: .leading, spacing: 8) {
-                // Keywords as rectangular blocks
-                FlowLayout(spacing: 6) {
-                    ForEach(block.sqlKeywords, id: \.self) { keyword in
-                        Text(keyword)
-                            .font(.caption2)
-                            .fontWeight(.black)
-                            .foregroundStyle(Color(hex: 0x0F172A))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(style.accentColor)
-                            .clipShape(RoundedRectangle(cornerRadius: 2))
-                    }
-                }
+            // Content area with image on the right
+            GeometryReader { geo in
+                let contentHeight = geo.size.height
+                ZStack(alignment: .trailing) {
+                    // Square image, right-aligned, as decorative background
+                    Image(block.imageName)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: contentHeight, height: contentHeight)
+                        .clipped()
+                        .opacity(0.25)
+                        .padding(.trailing, 16)
 
-                Text(block.summary)
-                    .font(.caption)
-                    .foregroundStyle(Color(hex: 0x94A3B8))
-                    .lineLimit(2)
+                    // Text content on the left
+                    HStack {
+                        VStack(alignment: .leading, spacing: 8) {
+                            // Keywords as rectangular blocks
+                            FlowLayout(spacing: 6) {
+                                ForEach(block.sqlKeywords, id: \.self) { keyword in
+                                    Text(keyword)
+                                        .font(.caption2)
+                                        .fontWeight(.black)
+                                        .foregroundStyle(Color(hex: 0x0F172A))
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 4)
+                                        .background(style.accentColor)
+                                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                                }
+                            }
 
-                // Stars
-                HStack(spacing: 4) {
-                    ForEach(0..<5, id: \.self) { index in
-                        let filled = index < (bestStars ?? 0)
-                        Image(systemName: filled ? "star.fill" : "star")
-                            .font(.system(size: 12))
-                            .foregroundStyle(filled
-                                             ? style.accentColor
-                                             : Color(hex: 0x334155))
+                            Text(block.summary)
+                                .font(.caption)
+                                .foregroundStyle(Color(hex: 0x94A3B8))
+                                .lineLimit(2)
+
+                            // Stars
+                            HStack(spacing: 4) {
+                                ForEach(0..<5, id: \.self) { index in
+                                    let filled = index < (bestStars ?? 0)
+                                    Image(systemName: filled ? "star.fill" : "star")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(filled
+                                                         ? style.accentColor
+                                                         : Color(hex: 0x334155))
+                                }
+                            }
+                        }
+                        .padding(12)
+                        Spacer()
                     }
                 }
             }
-            .padding(12)
             .background(Color(hex: 0x0F172A))
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -116,43 +115,42 @@ struct StyledExerciseBlockCardView: View {
 
     // MARK: - Glassmorphism
 
-    /// Frosted glass card with circular image, glass-pill tags, and glowing dot stars.
-    /// Vertical centered layout with translucent layering.
+    /// Frosted glass card with circular image, glass-pill tags, and star rating.
+    /// Vertical centered layout with indigo-tinted translucent layering.
     private var glassmorphismCard: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 6) {
             // Circular image with glow ring
             Image(block.imageName)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 70, height: 70)
+                .frame(width: 56, height: 56)
                 .clipShape(Circle())
                 .overlay(
                     Circle()
-                        .stroke(style.accentColor.opacity(0.5), lineWidth: 2)
+                        .strokeBorder(style.accentColor.opacity(0.5), lineWidth: 1.5)
                 )
-                .shadow(color: style.accentColor.opacity(0.3), radius: 8)
+                .shadow(color: style.accentColor.opacity(0.3), radius: 6)
 
             // Title centered
             Text(block.title)
                 .font(.subheadline)
                 .fontWeight(.semibold)
-                .foregroundStyle(Color(hex: 0xF8FAFC))
+                .foregroundStyle(Color(hex: 0xE0E7FF))
 
             // Keywords as frosted glass pills
-            FlowLayout(spacing: 6) {
+            FlowLayout(spacing: 5) {
                 ForEach(block.sqlKeywords, id: \.self) { keyword in
                     Text(keyword)
                         .font(.caption2)
                         .fontWeight(.medium)
-                        .foregroundStyle(style.accentColor)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(.ultraThinMaterial)
-                        .environment(\.colorScheme, .dark)
+                        .foregroundStyle(Color(hex: 0xC7D2FE))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(Color(hex: 0x312E81).opacity(0.5))
                         .clipShape(Capsule())
                         .overlay(
                             Capsule()
-                                .stroke(style.accentColor.opacity(0.3), lineWidth: 1)
+                                .strokeBorder(style.accentColor.opacity(0.25), lineWidth: 1)
                         )
                 }
             }
@@ -165,25 +163,25 @@ struct StyledExerciseBlockCardView: View {
                 .lineLimit(2)
 
             // Stars with glow
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 ForEach(0..<5, id: \.self) { index in
                     let filled = index < (bestStars ?? 0)
                     Image(systemName: filled ? "star.fill" : "star")
                         .font(.system(size: 11))
-                        .foregroundStyle(filled ? style.accentColor : Color.white.opacity(0.2))
-                        .shadow(color: filled ? style.accentColor.opacity(0.6) : .clear,
-                                radius: 4)
+                        .foregroundStyle(filled ? style.accentColor : Color(hex: 0x312E81))
+                        .shadow(color: filled ? style.accentColor.opacity(0.5) : .clear,
+                                radius: 3)
                 }
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
-        .environment(\.colorScheme, .dark)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(hex: 0x1E1B4B).opacity(0.85))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(Color(hex: 0x818CF8).opacity(0.2), lineWidth: 1)
         )
     }
 
@@ -241,7 +239,7 @@ struct StyledExerciseBlockCardView: View {
             }
         }
         .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(.white)
         .overlay(
             Rectangle()
@@ -298,7 +296,7 @@ struct StyledExerciseBlockCardView: View {
                             .padding(.vertical, 3)
                             .overlay(
                                 Capsule()
-                                    .stroke(style.accentColor.opacity(0.5), lineWidth: 1)
+                                    .strokeBorder(style.accentColor.opacity(0.5), lineWidth: 1)
                             )
                     }
                 }
@@ -308,11 +306,12 @@ struct StyledExerciseBlockCardView: View {
                 Text(block.summary)
                     .font(.caption)
                     .foregroundStyle(Color(hex: 0x94A3B8))
-                    .lineLimit(2)
+                    .lineLimit(3)
             }
-            .frame(maxHeight: 130, alignment: .top)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .padding(12)
+        .frame(maxHeight: .infinity)
         .background(Color(hex: 0x000000))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
@@ -406,6 +405,7 @@ struct StyledExerciseBlockCardView: View {
                 .padding(.horizontal, 10)
             }
         }
+        .frame(maxHeight: .infinity)
         .background(Color(hex: 0x020617))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(

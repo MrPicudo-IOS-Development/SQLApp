@@ -50,7 +50,6 @@ struct QueryEditorView: View {
             VStack(spacing: 0) {
                 titleHeader
                 sqlInputSection
-                controlBar
                 resultsSection
             }
             .background(Color(.systemGroupedBackground))
@@ -142,6 +141,9 @@ struct QueryEditorView: View {
             }
             .background(style.editorBackground)
             .animation(.easeInOut(duration: 0.2), value: showClearButton)
+
+            // Control bar (attached to editor)
+            controlBar
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
@@ -218,9 +220,6 @@ struct QueryEditorView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(style.editorTitleBar)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
-        .padding(.vertical, 6)
     }
 
     // MARK: - Results
